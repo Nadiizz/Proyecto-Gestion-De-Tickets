@@ -1,0 +1,75 @@
+{# Esta plantilla permite asignar un ticket específico a un técnico del sistema.#}
+{# Muestra la información del ticket y proporciona un selector con todos los técnicos disponibles.#}
+{# Los administradores pueden reasignar tickets entre diferentes técnicos según la disponibilidad.#}
+
+
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/asignar_tickets.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="form-section">
+    <div class="form-header">
+        <h2>👤 Asignar Ticket</h2>
+        <p>Asigna este ticket a un técnico disponible</p>
+    </div>
+
+    <div class="ticket-info-card">
+        <div class="ticket-header">
+            <h3>{{ ticket.titulo }}</h3>
+            <div class="ticket-meta">
+                <span class="status-badge status-{{ ticket.estado|lower }}">{{ ticket.estado }}</span>
+                <span class="priority-badge priority-{{ ticket.prioridad|lower }}">{{ ticket.prioridad }}</span>
+            </div>
+        </div>
+        
+        <div class="ticket-details">
+            <div class="detail-row">
+                <span class="detail-label">📝 Descripción:</span>
+                <span class="detail-value">{{ ticket.descripcion }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">🏢 Área afectada:</span>
+                <span class="detail-value">{{ ticket.area_afectada }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">👤 Creado por:</span>
+                <span class="detail-value">{{ ticket.creador.username }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">📅 Fecha creación:</span>
+                <span class="detail-value">{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" class="assignment-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="tecnico" class="form-label">🎯 Seleccionar Técnico:</label>
+            <select name="tecnico" id="tecnico" class="form-select" required>
+                <option value="">-- Selecciona un técnico --</option>
+                {% for t in tecnicos %}
+                <option value="{{ t.id }}">👨‍💻 {{ t.get_full_name|default:t.username }} - {{ t.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                ✅ Asignar Ticket
+            </button>
+            <a href="{% url 'ticket_list' %}" class="btn btn-secondary">
+                ↩️ Volver al Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}

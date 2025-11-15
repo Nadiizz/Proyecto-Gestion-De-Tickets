@@ -1,0 +1,62 @@
+{# Plantilla intranet (usuarios autenticados) #}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    <title>Gestión de Tickets - Coyahue</title>
+    <link rel="stylesheet" href="{% static 'tickets/css/styles.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Logo" style="height: 100px; margin-bottom: 1rem;">
+                    <div class="company-info">
+                    </div>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="sidebar-menu">
+                    <li><a href="{% url 'ticket_list' %}" class="{% if request.resolver_match.url_name == 'ticket_list' %}active{% endif %}">📊 Dashboard</a></li>
+                    <li><a href="{% url 'ticket_create' %}" class="{% if request.resolver_match.url_name == 'ticket_create' %}active{% endif %}">📋 Crear Ticket</a></li>
+                    <!-- Menú TICKETS-->
+                    <li class="menu-section">🎫 TICKETS</li>
+                    <li><a href="{% url 'ticket_list' %}?estado=pendiente" class="{% if request.GET.estado == 'pendiente' %}active{% endif %}">⏳ Pendientes</a></li>
+                    <li><a href="{% url 'ticket_list' %}?estado=abierto" class="{% if request.GET.estado == 'abierto' %}active{% endif %}">🟡 Abiertos</a></li>
+                    <li><a href="{% url 'ticket_list' %}?estado=en_progreso" class="{% if request.GET.estado == 'en_progreso' %}active{% endif %}">🔵 En Progreso</a></li>
+                    <li><a href="{% url 'ticket_list' %}?estado=resuelto" class="{% if request.GET.estado == 'resuelto' %}active{% endif %}">🟢 Resueltos</a></li>
+                    <!-- Usuario -->
+                    <li class="menu-section">👤 USUARIO</li>
+                    <li><a href="{% url 'login' %}">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <h1>Sistema de Tickets - Grupo Coyahue</h1>
+                </div>
+                <div class="header-right">
+                    <span class="user-welcome">Bienvenido, {{ user.username }}</span>
+                    <span class="user-role-badge">
+                        {% if user.groups.all %}
+                            {{ user.groups.all.0.name }}
+                        {% else %}
+                            Usuario
+                        {% endif %}
+                    </span>
+                </div>
+            </header>
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

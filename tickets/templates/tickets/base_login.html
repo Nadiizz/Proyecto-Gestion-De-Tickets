@@ -1,0 +1,14 @@
+{# Plantilla base exclusiva para paginas de login #}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    <title>Gestión de Tickets - Coyahue</title>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}login-page{% endblock %}">
+    {% block content %}{% endblock %}
+</body>
+</html>

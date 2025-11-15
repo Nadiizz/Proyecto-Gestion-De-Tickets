@@ -1,0 +1,90 @@
+16/09/2025 (Empece el historico muy tarde lol)
+    - Se hizo la interfaz de asignacion de tickets para que el admin pueda asignarle a los tecnicos los trabajos que tienen que hacer 
+        Para esto se creo una vista en "views.py" llamada (asignar_ticket) 
+        Se modifico las urls poniendo una nueva linea a las urls (Linea 7)
+        Se creo un template llamado (asignar_ticket.html) para que rediriga a la interfaz
+        Se genero un boton que solo verá el admin, esto fue modificado en (tickets_list.html) (linea 17 a la 27)
+
+    - Se configuro para que los tecnicos cambien el estado de los tickets ("pendiente", "en progreso", "Resuelto", "Cerrado")
+        En models.py en el modelo "Ticket" se crean los estados dichos anteriormente (Linea 9 a la 14)
+        En views.py se crea la vista "cambiar_estado" y se importa una libreria (get_object_or_404) (Linea 67 a 80)
+        Se agrega una nueva url (Linea 8)
+        Se crea el template "cambiar_estado.html"
+        Se configura dentro de "tickets_list" para que solo vean el boton de cambio de estado los tecnicos (Linea 17 a la 19)
+
+    - Se crea un boton de logout (no se porque no lo hice antes) 
+        dentro de tickets_coyahue/urls.py se configura el acount login y acount logout (Se hizo antes de crear el historico)
+        Se configura un nuevo <header> dentro de base.html que tenga un boton para cerrar sesion (linea 10 a 18)
+        dentro de tickets_coyahue/settings.py se configura un redirect para luego de pulsar el logout (Se hizo antes de crear el historico)
+
+    - Se agrega el sistema de comentarios en los tickets para que tanto tecnico como user convercen y dejar seguimiento en cada ticket
+        Se crea el modelo dentro de "models.py" bajo el nombre de Comentario (linea 35 a 42) y se importa la libreria "timezone", luego se aplican migraciones
+        Se crea vista (ticket_detalle) dentro de "views.py" (linea 84 a 108), tambien se importa el modelo "Comentario"
+        Se agrega la ruta en urls.py (linea 9)
+        Se crea el template "ticket_detalle.html"
+        dentro del loop se agrega el boton "ver" para ingresar al sistema de comentarios
+
+    - Se agrega el sistema de historial de cambios de estado, para que se vea quien lo cambió, a qué lo cambió y cúando lo cambió
+        Se crea el modelo (HistorialEstado) dentro de "models.py" (Linea 47 a la 54) y se aplican migraciones
+        En "views.py" se edita la vista (cambiar_estado) para que cree un registro en (HistorialEstado) cada vez que se cambie el estado (Linea 67 a 86)
+        Se edita (ticket_detalle) para que tambien se envie el historial alli (Linea 111 y 115)
+        Dentro del template "ticket_detalle.html" se agrega una nueva seccion antes de la seccion de comentarios llamada <>historial de estados<> (Linea 9 a 19)
+        
+
+18/09/2025
+    - Se genero el frontend de la pagina de Login
+        Se ajusto "base.html" para que tome los estilos generales del proyecto
+        Se crea "login.css" configurando los estilos para la pagina de Login
+        Se ajusto "login.html" para que tome los estilos de "tickets/css/login.css" generando el primer front del proyecto
+        Me demore mas en esta wea que lo que hice el 16 de septiembre, ODIO FRONTEND
+
+
+22/09/2025
+    - Se mejoro el front de la pagina de Login 
+        Se arreglaron algunos bugs de la pagina 
+        se hizo un front tan lindo jiji
+        Se ajusto "base.html" para que pueda cargar el css de forma correcta
+        Se ajusto "login.html" para que tome de forma correcta el css
+    
+    - Se agregaron comentarios para reconocer la funcionalidades de los archivos
+        archivos comentados:
+            asignar_ticket.html
+            base.html
+            cambiar_estado.html
+            ticket_detalle.html
+            ticket_form.html
+            tickets_list.html
+            login.css
+            login.html
+            views.py    
+            models.py
+    
+    - Hice muchas cosas, ni me acuerdo por donde comencé
+        cambie la estructura completa del login y base dividiendolo en dos modulos para que funcionen por separado evitando errores
+        hice el front de "base_intranet", quedo bonito
+
+23/09/2025 
+    - Me dedique a arreglar el front y las demas cosas para que funcione todo
+        muchos cambios, no los voy a poner aqui
+        Me falta por agregar el css de ticket_form
+        base_intranet y tickets_list estan combinados en styles.css para su front
+
+06/11/2025
+    - Se implementó el sistema de registro de usuarios con validación de correo empresarial
+        Se creó el formulario personalizado (CustomUserCreationForm) en forms.py para el registro de usuarios
+        Se configuro la validación para aceptar solo correos con dominio @coyahue.com o @coyahue.cl
+        Se implementó la selección de rol (Usuario Regular o Técnico) durante el registro
+        Se agregó la vista de registro en views.py
+        Se creó el template registro.html con estilo bootstrap4
+    
+    - Se configuro el sistema de formularios con crispy-forms
+        Se instalaron los paquetes django-crispy-forms y crispy-bootstrap4
+        Se agregaron 'crispy_forms' y 'crispy_bootstrap4' a INSTALLED_APPS en settings.py
+        Se configuro CRISPY_TEMPLATE_PACK y CRISPY_ALLOWED_TEMPLATE_PACKS en settings.py
+        Se ajustó el template de registro para usar los estilos de crispy-forms
+
+    - Se implemento el diseño visual de la página de registro
+        Se creó register.css siguiendo la misma línea visual que login.css
+        Se ajustó el tamaño del contenedor principal para una mejor presentación
+        Se personalizaron los mensajes de ayuda y validación
+        Se agregó el logo y los elementos visuales consistentes con la página de login

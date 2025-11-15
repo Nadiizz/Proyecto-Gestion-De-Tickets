@@ -1,0 +1,391 @@
+/* ticket_detalle.css - Estilos para la vista detallada del ticket */
+
+.ticket-detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Header del ticket */
+.ticket-detail-header {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.ticket-main-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.ticket-title-section h1 {
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+}
+
+.ticket-meta-badges {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+/* Grid de información */
+.ticket-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.info-card {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+}
+
+.info-card h3 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.info-card p {
+    margin: 0;
+    color: #34495e;
+    font-size: 1rem;
+}
+
+/* Descripción */
+.ticket-description {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.ticket-description h2 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.description-content {
+    line-height: 1.6;
+    color: #34495e;
+}
+
+/* Layout de dos columnas */
+.comments-history-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 968px) {
+    .comments-history-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Secciones */
+.comments-section, .history-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.section-title {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+/* Listas */
+.comments-list, .history-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Comentarios */
+.comment-item {
+    border-left: 3px solid #3498db;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #f8fafc;
+    border-radius: 0 8px 8px 0;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.comment-date {
+    color: #7f8c8d;
+    font-size: 0.8rem;
+}
+
+.comment-content {
+    color: #34495e;
+    line-height: 1.5;
+}
+
+/* HISTORIAL DE ESTADOS CON COLORES ESPECÍFICOS */
+.history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+    transition: transform 0.2s;
+}
+
+.history-item:hover {
+    transform: translateX(5px);
+}
+
+/* Colores del borde izquierdo y fondo según el estado */
+.history-item[data-estado="abierto"] { 
+    border-left-color: #3498db; 
+    background: #ebf5fb; 
+}
+
+.history-item[data-estado="en_progreso"] { 
+    border-left-color: #f39c12; 
+    background: #fef9e7; 
+}
+
+.history-item[data-estado="resuelto"] { 
+    border-left-color: #27ae60; 
+    background: #eafaf1; 
+}
+
+.history-item[data-estado="cerrado"] { 
+    border-left-color: #7f8c8d; 
+    background: #f8f9fa; 
+}
+
+.history-item[data-estado="cancelado"] { 
+    border-left-color: #e74c3c; 
+    background: #fdedec; 
+}
+
+.history-icon {
+    font-size: 1.2rem;
+    margin-top: 0.2rem;
+}
+
+.history-content {
+    flex: 1;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.history-user {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.history-date {
+    color: #7f8c8d;
+    font-size: 0.8rem;
+}
+
+.history-change {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+
+/* Badges de estado en el historial - CON COLORES ESPECÍFICOS */
+.status-change {
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: white;
+}
+
+/* Estado anterior (color neutro) */
+.status-from {
+    background: #95a5a6;
+}
+
+/* Estados nuevos - COLORES ESPECÍFICOS */
+.status-to[data-estado="abierto"] { background: #3498db; }
+.status-to[data-estado="en_progreso"] { background: #f39c12; }
+.status-to[data-estado="resuelto"] { background: #27ae60; }
+.status-to[data-estado="cerrado"] { background: #7f8c8d; }
+.status-to[data-estado="cancelado"] { background: #e74c3c; }
+
+.status-arrow {
+    color: #7f8c8d;
+    font-weight: bold;
+}
+
+.history-comment {
+    color: #34495e;
+    font-style: italic;
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid #bdc3c7;
+    background: rgba(255,255,255,0.7);
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+/* Formulario */
+.comment-form {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    font-size: 1rem;
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Badges principales */
+.status-badge, .priority-badge {
+    padding: 0.4rem 1rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-abierto { background: #e3f2fd; color: #1976d2; }
+.status-en_progreso { background: #fff3e0; color: #f57c00; }
+.status-resuelto { background: #e8f5e8; color: #065f46; }
+.status-cerrado { background: #f5f5f5; color: #374151; }
+.status-cancelado { background: #fee2e2; color: #dc2626; }
+
+.priority-alta { background: #fee2e2; color: #dc2626; }
+.priority-media { background: #fef3c7; color: #d97706; }
+.priority-baja { background: #d1fae5; color: #065f46; }
+
+/* Botones */
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.7rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.empty-state::before {
+    content: "📝";
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* Scrollbar */
+.comments-list::-webkit-scrollbar,
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track,
+.history-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb,
+.history-list::-webkit-scrollbar-thumb {
+    background: #bdc3c7;
+    border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover,
+.history-list::-webkit-scrollbar-thumb:hover {
+    background: #95a5a6;
+}

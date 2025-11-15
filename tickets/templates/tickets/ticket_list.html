@@ -1,0 +1,111 @@
+{# Página principal que muestra la lista de tickets del sistema #}
+{# Muestra diferentes opciones según el rol del usuario (Administrador, Técnico, Usuario) #}
+{# Los administradores pueden asignar tickets, los técnicos cambiar estados #}
+{# Cada usuario ve solo los tickets relevantes para su rol y permisos #}
+
+{% extends 'tickets/base_intranet.html' %}
+{% block content %}
+
+<!-- Estadísticas del Dashboard -->
+<div class="stats-grid">
+    <div class="stat-card registrados">
+        <div class="stat-number">{{ total_tickets }}</div>
+        <div class="stat-label">Registrados</div>
+    </div>
+    <div class="stat-card asignados">
+        <div class="stat-number">{{ asignados_count }}</div>
+        <div class="stat-label">Asignados</div>
+    </div>
+    <div class="stat-card proceso">
+        <div class="stat-number">{{ en_proceso_count }}</div>
+        <div class="stat-label">En Proceso</div>
+    </div>
+    <div class="stat-card finalizados">
+        <div class="stat-number">{{ resueltos_count }}</div>
+        <div class="stat-label">Resueltos</div>
+    </div>
+</div>
+
+<!-- SOLO UNA SECCIÓN DE TICKETS -->
+<div class="tickets-section">
+    <div class="section-header">
+        <h3>
+            {% if filtro_aplicado %}
+                🎫 Tickets {{ estado_filtro|title }}
+            {% else %}
+                📋 Tickets Recientes
+            {% endif %}
+        </h3>
+        
+        <!-- Botón de crear ticket SOLO si no hay filtro aplicado -->
+        {% if not filtro_aplicado %}
+        <a href="{% url 'ticket_create' %}" class="btn btn-primary">➕ Crear Nuevo Ticket</a>
+        {% endif %}
+    </div>
+    
+    <table class="tickets-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Solicitante</th>
+                <th>Área</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr>
+                <td>#{{ ticket.id }}</td>
+                <td><strong>{{ ticket.titulo }}</strong></td>
+                <td>{{ ticket.creador.username }}</td>
+                <td>{{ ticket.area_afectada }}</td>
+                <td>
+                    <span class="priority-badge priority-{{ ticket.prioridad|lower }}">
+                        {{ ticket.prioridad }}
+                    </span>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ ticket.estado|lower }}">
+                        {{ ticket.estado }}
+                    </span>
+                </td>
+                <td>{{ ticket.fecha_creacion|date:"d/m/Y" }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-view">👁️ Ver</a>
+                        {% if user.groups.all.0.name == 'Técnico' and ticket.asignado_a == user %}
+                        <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-edit">🔄 Cambiar</a>
+                        {% endif %}
+                        {% if user.groups.all.0.name == 'Administrador' and not ticket.asignado_a %}
+                        <a href="{% url 'asignar_ticket' ticket.id %}" class="btn btn-assign">👤 Asignar</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
+                    {% if filtro_aplicado %}
+                    📭 No hay tickets {{ estado_filtro }} para mostrar
+                    {% else %}
+                    📝 No hay tickets para mostrar
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Mensaje cuando hay filtro aplicado -->
+    {% if filtro_aplicado %}
+    <div style="text-align: center; margin-top: 1rem;">
+        <a href="{% url 'ticket_list' %}" class="btn btn-secondary">📊 Ver Todos los Tickets</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

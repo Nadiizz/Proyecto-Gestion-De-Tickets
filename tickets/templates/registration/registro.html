@@ -1,0 +1,50 @@
+{% extends 'tickets/base_login.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/register.css' %}">
+{% endblock %}
+
+{% block body_class %}register-page{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-logo">
+        <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Grupo Coyahue">
+        <h1>Grupo Coyahue</h1>
+        <p>Sistema de Gestión de Tickets</p>
+    </div>
+
+    <div class="form-title">
+        <h2>Registro de Usuario</h2>
+        <p class="subtitle">Crea tu cuenta para comenzar</p>
+    </div>
+
+    <div class="form-divider"></div>
+
+    <form method="post" class="register-form">
+        {% csrf_token %}
+        {{ form|crispy }}
+
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+        <button type="submit" class="register-submit">Registrarse</button>
+    </form>
+    
+    <div class="login-link">
+        <p>¿Ya tienes una cuenta?</p>
+        <a href="{% url 'login' %}">Iniciar Sesión</a>
+    </div>
+</div>
+{% endblock %}

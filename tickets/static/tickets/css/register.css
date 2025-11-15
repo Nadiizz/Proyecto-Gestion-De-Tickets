@@ -1,0 +1,326 @@
+/*Define los estilos visuales para la página de registro del sistema
+Utiliza la misma paleta de colores y estilo que la página de login
+Incluye animaciones suaves y efectos hover para mejor UX
+Es completamente responsivo para diferentes dispositivos*/
+
+/* Estilo visual de la página de Registro */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Fondo y configuración general del cuerpo */
+body.register-page {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #020202 0%, #944e0d 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Contenedor principal del formulario de registro */
+.register-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    padding: 40px 30px;
+    width: 500px;
+    text-align: center;
+}
+
+/* Estilos para la sección del logo y título */
+.register-logo {
+    margin-bottom: 40px;
+}
+
+.register-logo img {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a8a8a8 0%, #764ba2 100%);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.register-logo h1 {
+    color: #333;
+    font-size: 1.8em;
+    margin-bottom: 8px;
+}
+
+.register-logo p {
+    color: #666;
+    font-size: 1em;
+}
+
+/* Estilos para el título del formulario */
+.form-title {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.form-title h2 {
+    color: #333;
+    font-size: 1.8em;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 1em;
+}
+
+/* Línea divisoria decorativa */
+.form-divider {
+    width: 100%;
+    height: 1px;
+    background: #e0e0e0;
+    margin: 25px 0;
+}
+
+/* Estilos para el formulario de registro */
+.register-form {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    border-color: #944e0d;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(148, 78, 13, 0.1);
+}
+
+/* Estilos para los radio buttons de tipo de usuario */
+.form-group.radio-group {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.form-group.radio-group label.radio-label {
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.radio-options {
+    display: flex;
+    gap: 20px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+/* Estilos para mensajes de error */
+.alert-danger {
+    background-color: #fff2f2;
+    border: 1px solid #ffcdd2;
+    color: #d32f2f;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.alert-danger ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.alert-danger li {
+    margin-bottom: 5px;
+}
+
+/* Botón de registro */
+.register-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #944e0d 0%, #783f0a 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.register-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(148, 78, 13, 0.3);
+}
+
+.register-submit:active {
+    transform: translateY(0);
+}
+
+/* Link para volver al login */
+.login-link {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.login-link p {
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.login-link a {
+    color: #944e0d;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.login-link a:hover {
+    color: #783f0a;
+    text-decoration: underline;
+}
+
+/* Texto de ayuda */
+.help-text {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+    .register-container {
+        padding: 30px 20px;
+        width: 95%;
+    }
+
+    .register-logo img {
+        width: 120px;
+        height: 120px;
+    }
+
+    .register-logo {
+        margin-bottom: 30px;
+    }
+
+    .register-form {
+        padding: 10px;
+    }
+
+    .radio-options {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Estilos personalizados para crispy-forms */
+.asteriskField {
+    display: none;  /* Ocultar los asteriscos de campos requeridos */
+}
+
+.help-block {
+    color: #666 !important;
+    font-size: 12px !important;
+    margin-top: 5px !important;
+    font-style: italic !important;
+    text-align: left !important;
+}
+
+/* Estilos para el select de tipo de usuario */
+#div_id_tipo_usuario {
+    text-align: left;
+    margin: 15px 0;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 14px;
+    border: 2px solid #e1e1e1;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    color: #333;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8.825L1.175 4 2.238 2.938 6 6.7l3.763-3.762L10.825 4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.custom-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    background-color: white;
+}
+
+.custom-select option {
+    padding: 12px;
+}
+
+.custom-select option:first-child {
+    color: #666;
+    font-style: italic;
+}
+
+/* Ajustes para los campos de formulario */
+.form-group {
+    margin-bottom: 15px !important;
+}
+
+.form-control {
+    font-size: 14px !important;
+}
+
+/* Animación de entrada suave */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.register-container {
+    animation: fadeIn 0.5s ease-out;
+}

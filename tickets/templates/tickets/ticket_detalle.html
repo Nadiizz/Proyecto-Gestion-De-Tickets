@@ -1,0 +1,161 @@
+{# Esta plantilla muestra la vista detallada de un ticket específico. #}
+{#Presenta toda la información del ticket incluyendo su historial de estados #}
+{#y los comentarios asociados. Los usuarios pueden ver el progreso del ticket #}
+{#y agregar nuevos comentarios para seguir la comunicación sobre el mismo. #}
+
+
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/ticket_detalle.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="ticket-detail-container">
+    {# Header principal del ticket #}
+    <div class="ticket-detail-header">
+        <div class="ticket-main-info">
+            <div class="ticket-title-section">
+                {# Título principal con el nombre del ticket #}
+                <h1>#{{ ticket.id }} - {{ ticket.titulo }}</h1>
+                <div class="ticket-meta-badges">
+                    {# Información básica del ticket: estado y prioridad #}
+                    <span class="status-badge status-{{ ticket.estado|lower }}">{{ ticket.estado }}</span>
+                    <span class="priority-badge priority-{{ ticket.prioridad|lower }}">{{ ticket.prioridad }}</span>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'ticket_list' %}" class="btn btn-secondary">← Volver al Dashboard</a>
+                {% if user.groups.all.0.name == 'Técnico' and ticket.asignado_a == user %}
+                <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-warning">🔄 Cambiar Estado</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Grid de información detallada del ticket #}
+        <div class="ticket-info-grid">
+            <div class="info-card">
+                <h3>👤 Creado por</h3>
+                <p>{{ ticket.creador.username }}</p>
+            </div>
+            <div class="info-card">
+                <h3>👨‍💻 Asignado a</h3>
+                <p>
+                    {% if ticket.asignado_a %}
+                        {{ ticket.asignado_a.username }}
+                    {% else %}
+                        <span style="color: #e74c3c;">Sin asignar</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="info-card">
+                <h3>🏢 Área afectada</h3>
+                <p>{{ ticket.area_afectada }}</p>
+            </div>
+            <div class="info-card">
+                <h3>📅 Fecha creación</h3>
+                <p>{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+    </div>
+
+    {# Sección de descripción del ticket #}
+    <div class="ticket-description">
+        <h2>📋 Descripción del Ticket</h2>
+        <div class="description-content">
+            {{ ticket.descripcion|linebreaks }}
+        </div>
+    </div>
+
+    {# Sección de comentarios e historial en dos columnas #}
+    <div class="comments-history-section">
+        {# Columna izquierda: Historial de estados #}
+        <div class="history-section">
+            {# Sección que muestra el historial de cambios de estado del ticket #}
+            <h3 class="section-title">📊 Historial de Estados</h3>
+            <div class="history-list">
+                {# Itera sobre cada cambio de estado en el historial #}
+                {% for h in historial %}
+                <div class="history-item" data-estado="{{ h.estado_nuevo|lower }}">
+                    <div class="history-icon">
+                        {% if h.estado_nuevo == 'abierto' %}🔵{% endif %}
+                        {% if h.estado_nuevo == 'en_progreso' %}🟡{% endif %}
+                        {% if h.estado_nuevo == 'resuelto' %}🟢{% endif %}
+                        {% if h.estado_nuevo == 'cerrado' %}⚫{% endif %}
+                        {% if h.estado_nuevo == 'cancelado' %}🔴{% endif %}
+                    </div>
+                    <div class="history-content">
+                        <div class="history-header">
+                            <span class="history-user">{{ h.cambiado_por.username }}</span>
+                            <span class="history-date">{{ h.fecha|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        {# Muestra el cambio de estado #}
+                        <div class="history-change">
+                            {% if h.estado_anterior %}
+                            <span class="status-change status-from">{{ h.estado_anterior }}</span>
+                            <span class="status-arrow">→</span>
+                            {% endif %}
+                            <span class="status-change status-to" data-estado="{{ h.estado_nuevo|lower }}">
+                                {{ h.estado_nuevo }}
+                            </span>
+                        </div>
+                        {# Muestra comentario del cambio si existe #}
+                        {% if h.comentario %}
+                        <div class="history-comment">
+                            {{ h.comentario }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                {# Mensaje que aparece cuando no hay cambios de estado #}
+                <div class="empty-state">No hay cambios de estado aún.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# Columna derecha: Comentarios #}
+        <div class="comments-section">
+            {# Sección que muestra los comentarios del ticket #}
+            <h3 class="section-title">💬 Comentarios</h3>
+            <div class="comments-list">
+                {# Itera sobre cada comentario del ticket #}
+                {% for c in comentarios %}
+                <div class="comment-item">
+                    <div class="comment-header">
+                        {# Muestra autor y fecha del comentario #}
+                        <span class="comment-author">{{ c.autor.username }}</span>
+                        <span class="comment-date">{{ c.fecha|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    {# Muestra contenido del comentario #}
+                    <div class="comment-content">
+                        {{ c.mensaje|linebreaks }}
+                    </div>
+                </div>
+                {% empty %}
+                {# Mensaje que aparece cuando no hay comentarios #}
+                <div class="empty-state">No hay comentarios aún.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# Formulario para agregar nuevos comentarios al ticket #}
+    <div class="comment-form">
+        <h3 class="section-title">✍️ Agregar Comentario</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                {# Área de texto para escribir el comentario #}
+                <textarea name="mensaje" class="form-textarea" placeholder="Escribe tu comentario aquí..." required></textarea>
+            </div>
+            {# Botón para publicar el comentario #}
+            <button type="submit" class="btn btn-primary">📤 Publicar Comentario</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+

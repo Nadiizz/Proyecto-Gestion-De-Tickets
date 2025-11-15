@@ -1,0 +1,62 @@
+{# Esta plantilla representa la página de login del sistema de gestión de tickets del Grupo Coyahue.#}
+{# Proporciona una interfaz para que los usuarios se autentiquen con su nombre de usuario y contraseña, #}
+{# incluyendo validaciones de seguridad #}
+{# y manejo de errores.#}
+
+{% extends 'tickets/base_login.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-logo">
+        <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Grupo Coyahue">
+        <h1>Grupo Coyahue</h1>
+        <p>Sistema de Gestión de Tickets</p>
+    </div>
+    
+    <div class="form-title">
+        <h2>Bienvenido</h2>
+        <p class="subtitle">Ingresa a tu cuenta para continuar</p>
+    </div>
+    
+    <div class="form-divider"></div>
+    
+    <form method="post" class="login-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="username">Usuario</label>
+            <input type="text" name="username" id="username" placeholder="Ingresa tu usuario" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Contraseña</label>
+            <input type="password" name="password" id="password" placeholder="Ingresa tu contraseña" required>
+        </div>
+        
+        <div class="form-options">
+            <label class="remember-me">
+                <input type="checkbox" name="remember_me"> Recordarme
+            </label>
+            <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+        </div>
+        
+        <button type="submit" class="login-button">INGRESAR</button>
+        
+        <div class="register-section">
+            <p>¿No tienes una cuenta?</p>
+            <a href="{% url 'registro' %}" class="register-button">REGISTRARSE</a>
+        </div>
+    </form>
+    
+    {% if form.errors %}
+    <div class="error-message">
+        Usuario o contraseña incorrectos. Por favor, intenta nuevamente.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

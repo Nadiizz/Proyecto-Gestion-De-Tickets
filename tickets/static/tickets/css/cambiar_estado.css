@@ -1,0 +1,302 @@
+/* cambiar_estado.css - Estilos para la página de cambio de estado */
+
+.form-section {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.form-header h2 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+}
+
+.form-header p {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+.ticket-info-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+    border-left: 4px solid #3498db;
+}
+
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.ticket-header h3 {
+    color: #2c3e50;
+    margin: 0;
+    flex: 1;
+    font-size: 1.3rem;
+}
+
+.ticket-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ticket-details {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #34495e;
+    min-width: 120px;
+}
+
+.detail-value {
+    color: #7f8c8d;
+    flex: 1;
+}
+
+.status-form {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.status-options {
+    display: grid;
+    gap: 1rem;
+}
+
+.status-option {
+    display: block;
+    cursor: pointer;
+}
+
+.status-option input[type="radio"] {
+    display: none;
+}
+
+.status-option-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    transition: all 0.3s;
+    background: white;
+}
+
+.status-option input[type="radio"]:checked + .status-option-content {
+    border-color: #3498db;
+    background: #f8fafc;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+}
+
+.status-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    text-align: center;
+}
+
+.status-text {
+    flex: 1;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.status-option:hover .status-option-content {
+    border-color: #bdc3c7;
+    transform: translateY(-2px);
+}
+
+/* Estados específicos con colores */
+.status-option input[type="radio"]:checked + .status-option-content[data-status="abierto"] {
+    border-color: #3498db;
+    background: #ebf5fb;
+}
+
+.status-option input[type="radio"]:checked + .status-option-content[data-status="en_progreso"] {
+    border-color: #f39c12;
+    background: #fef9e7;
+}
+
+.status-option input[type="radio"]:checked + .status-option-content[data-status="resuelto"] {
+    border-color: #27ae60;
+    background: #eafaf1;
+}
+
+.status-option input[type="radio"]:checked + .status-option-content[data-status="cerrado"] {
+    border-color: #7f8c8d;
+    background: #f8f9fa;
+}
+
+.status-option input[type="radio"]:checked + .status-option-content[data-status="cancelado"] {
+    border-color: #e74c3c;
+    background: #fdedec;
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    transition: border-color 0.3s;
+    font-family: inherit;
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+/* Badges */
+.status-badge, .priority-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-abierto { background: #e3f2fd; color: #f57c00; }
+.status-en_progreso { background: #fff3e0; color: #1976d2; }
+.status-resuelto { background: #e8f5e8; color: #388e3c; }
+.status-cerrado { background: #f5f5f5; color: #616161; }
+.status-cancelado { background: #ffebee; color: #d32f2f; }
+
+.priority-alta { background: #ffebee; color: #d32f2f; }
+.priority-media { background: #fff3e0; color: #f57c00; }
+.priority-baja { background: #e8f5e8; color: #388e3c; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ticket-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .status-option-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    
+    .status-text {
+        order: -1;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    
+    .detail-label {
+        min-width: auto;
+    }
+}
+
+/* Animaciones */
+.status-option-content {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -1,0 +1,134 @@
+{# Plantilla para la creación de nuevos tickets en el sistema #}
+{# Incluye campos para título, descripción, área afectada y prioridad #}
+{# Todos los campos son obligatorios para garantizar información completa #}
+{# Permite a los usuarios reportar problemas al departamento técnico #}
+
+
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/ticket_form.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="form-container">
+    {# Título del formulario de creación de tickets #}
+    <div class="form-header">
+        <h1>📋 Nuevo Ticket</h1>
+        <p>Crea un nuevo ticket de soporte para el Grupo Coyahue</p>
+    </div>
+
+    {# Formulario para crear un nuevo ticket en el sistema #}
+    <form method="post" class="ticket-form">
+        {% csrf_token %}
+
+        <div class="form-grid">
+            {# Campo para el título del ticket #}
+            <div class="form-group full-width">
+                <label for="titulo" class="form-label">
+                    📝 Título <span class="required">*</span>
+                </label>
+                <input type="text" 
+                    name="titulo" 
+                    id="titulo" 
+                    class="form-input" 
+                    placeholder="Ej: Problema con la impresora del piso 3"
+                    required
+                    maxlength="200">
+                <div class="help-text">Describe brevemente el problema o solicitud</div>
+            </div>
+
+            {# Campo para la descripción detallada del problema #}
+            <div class="form-group full-width">
+                <label for="descripcion" class="form-label">
+                    📄 Descripción <span class="required">*</span>
+                </label>
+                <textarea name="descripcion" 
+                        id="descripcion" 
+                        class="form-textarea" 
+                        placeholder="Describe el problema en detalle. Incluye pasos para reproducirlo, mensajes de error, equipo afectado, y cualquier información relevante..."
+                        required
+                        maxlength="2000"></textarea>
+                <div class="char-counter">
+                    <span id="char-count">0</span>/2000 caracteres
+                </div>
+                <div class="help-text">Entre más detallada sea la descripción, más rápido podremos ayudarte</div>
+            </div>
+
+            {# Campo para especificar el área afectada por el problema #}
+            <div class="form-group">
+                <label for="area" class="form-label">
+                    🏢 Área Afectada <span class="required">*</span>
+                </label>
+                <select name="area" id="area" class="form-select" required>
+                    <option value="">Selecciona un área</option>
+                    <option value="Sistemas">💻 Sistemas</option>
+                    <option value="Redes">🌐 Redes</option>
+                    <option value="Hardware">🔧 Hardware</option>
+                    <option value="Software">📱 Software</option>
+                    <option value="Impresoras">🖨️ Impresoras</option>
+                    <option value="Telefonía">📞 Telefonía</option>
+                    <option value="Correo">📧 Correo Electrónico</option>
+                    <option value="Otros">📦 Otros</option>
+                </select>
+                <div class="help-text">Selecciona el área relacionada con tu problema</div>
+            </div>
+
+            {# Selector para establecer la prioridad del ticket #}
+            <div class="form-group">
+                <label for="prioridad" class="form-label">
+                    ⚠️ Prioridad <span class="required">*</span>
+                </label>
+                <select name="prioridad" id="prioridad" class="form-select" required>
+                    <option value="">Selecciona prioridad</option>
+                    <option value="baja">🟢 Baja - No afecta operaciones</option>
+                    <option value="media">🟡 Media - Afecta algunas funciones</option>
+                    <option value="alta">🟠 Alta - Impacta trabajo diario</option>
+                    <option value="critica">🔴 Crítica - Sistema no funciona</option>
+                </select>
+                <div class="help-text">
+                    <div class="priority-help">
+                        <div><strong>Baja:</strong> Solicitud rutinaria</div>
+                        <div><strong>Media:</strong> Problema moderado</div>
+                        <div><strong>Alta:</strong> Urgente - afecta productividad</div>
+                        <div><strong>Crítica:</strong> Emergencia - sistema caído</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Botones de acción #}
+        <div class="form-actions">
+            {# Botón para enviar el formulario y crear el ticket #}
+            <button type="submit" class="btn btn-primary">
+                ✅ Crear Ticket
+            </button>
+            <a href="{% url 'ticket_list' %}" class="btn btn-secondary">
+                ↩️ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<style>
+.priority-help {
+    margin-top: 0.5rem;
+    padding: 0.8rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.priority-help div {
+    margin: 0.2rem 0;
+    padding-left: 0.5rem;
+    border-left: 2px solid #3498db;
+}
+</style>
+
+{# CARGAR EL JS AL FINAL - DESPUÉS DEL CONTENIDO #}
+<script src="{% static 'tickets/js/ticket_form.js' %}"></script>
+
+{% endblock %}

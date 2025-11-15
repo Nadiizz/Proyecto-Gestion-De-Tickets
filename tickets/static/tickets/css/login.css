@@ -1,0 +1,254 @@
+/*Define los estilos visuales para la página de login del sistema
+Utiliza un diseño moderno con gradientes y sombras
+Incluye animaciones suaves y efectos hover para mejor UX
+Es completamente responsivo para diferentes dispositivos*/
+
+
+/* Estilo visual de la página de Login */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Fondo y configuración general del cuerpo en páginas de login */
+body.login-page {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #020202 0%, #944e0d 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Contenedor principal del formulario de login */
+.login-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    padding: 50px 40px;
+    width: 800px;
+    text-align: center;
+}
+
+/* Estilos para la sección del logo y título */
+.login-logo {
+    margin-bottom: 90px;
+}
+
+.login-logo img {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a8a8a8 0%, #764ba2 100%);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.login-logo h1 {
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.login-logo p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Estilos para el título del formulario */
+.form-title h2 {
+    color: #333;
+    font-size: 28px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.form-title .subtitle {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+/* Estilos para el formulario de login */
+.login-form {
+    width: 100%;
+}
+
+/* Estilos para los grupos de campos del formulario */
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e1e1e1;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #999;
+}
+
+/* Estilos para las opciones adicionales del formulario */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #555;
+}
+
+.remember-me input[type="checkbox"] {
+    width: auto;
+    transform: scale(1.2);
+}
+
+.forgot-password {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* Estilos para el botón de login */
+.login-button {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.login-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* Sección de registro */
+.register-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+.register-section p {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+.register-button {
+    display: inline-block;
+    padding: 10px 30px;
+    background: transparent;
+    border: 2px solid #944e0d;
+    border-radius: 8px;
+    color: #944e0d;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.register-button:hover {
+    background: #944e0d;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(148, 78, 13, 0.2);
+}
+
+.login-button:active {
+    transform: translateY(0);
+}
+
+/* Media queries para diseño responsive */
+@media (min-width: 768px) {
+    .login-container {
+        max-width: 520px; 
+    }
+}
+
+@media (max-width: 480px) {
+    body.login-page {
+        padding: 15px;
+    }
+    
+    .login-container {
+        padding: 40px 30px;
+        max-width: 100%;
+    }
+}
+
+/* Estilos para mensajes de error */
+.error-message {
+    background: #fee;
+    color: #c33;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #c33;
+    border-right: 4px solid #c33;
+    font-size: 14px;
+    text-align: left;
+}
+
+/* Animación de entrada para el contenedor de login */
+.login-container {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+

@@ -1,0 +1,104 @@
+{# Página para cambiar el estado de un ticket existente #}
+{# Permite a los técnicos y administradores actualizar el progreso del ticket #}
+{# El estado actual del ticket aparece seleccionado por defecto en el dropdown.#}
+{# Los usuarios pueden actualizar el progreso del ticket mediante esta interfaz.#}
+
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/cambiar_estado.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="form-section">
+    <div class="form-header">
+        <h2>🔄 Cambiar Estado del Ticket</h2>
+        <p>Actualiza el estado de progreso de este ticket</p>
+    </div>
+
+    <div class="ticket-info-card">
+        <div class="ticket-header">
+            <h3>#{{ ticket.id }} - {{ ticket.titulo }}</h3>
+            <div class="ticket-meta">
+                <span class="status-badge status-{{ ticket.estado|lower }}">{{ ticket.estado }}</span>
+                <span class="priority-badge priority-{{ ticket.prioridad|lower }}">{{ ticket.prioridad }}</span>
+            </div>
+        </div>
+        
+        <div class="ticket-details">
+            <div class="detail-row">
+                <span class="detail-label">📝 Descripción:</span>
+                <span class="detail-value">{{ ticket.descripcion }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">🏢 Área afectada:</span>
+                <span class="detail-value">{{ ticket.area_afectada }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">👤 Creado por:</span>
+                <span class="detail-value">{{ ticket.creador.username }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">👨‍💻 Asignado a:</span>
+                <span class="detail-value">
+                    {% if ticket.asignado_a %}
+                        {{ ticket.asignado_a.username }}
+                    {% else %}
+                        <span style="color: #e74c3c;">Sin asignar</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">📅 Fecha creación:</span>
+                <span class="detail-value">{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" class="status-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="estado" class="form-label">🎯 Seleccionar Nuevo Estado:</label>
+            <div class="status-options">
+                {% for estado_key, estado_value in estados %}
+                <label class="status-option">
+                    <input type="radio" name="estado" value="{{ estado_key }}" 
+                        {% if ticket.estado == estado_key %}checked{% endif %}>
+                    <span class="status-option-content">
+                        <span class="status-icon">
+                            {% if estado_key == 'abierto' %}🟡{% endif %}
+                            {% if estado_key == 'en_progreso' %}🔵{% endif %}
+                            {% if estado_key == 'resuelto' %}🟢{% endif %}
+                        </span>
+                        <span class="status-text">{{ estado_value }}</span>
+                        <span class="status-badge status-{{ estado_key }}">{{ estado_value }}</span>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="comentario" class="form-label">💬 Comentario (opcional):</label>
+            <textarea name="comentario" id="comentario" class="form-textarea" 
+                placeholder="Agrega un comentario sobre el cambio de estado..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                ✅ Actualizar Estado
+            </button>
+            <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-secondary">
+                ↩️ Volver al Ticket
+            </a>
+            <a href="{% url 'ticket_list' %}" class="btn btn-secondary">
+                📊 Volver al Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
