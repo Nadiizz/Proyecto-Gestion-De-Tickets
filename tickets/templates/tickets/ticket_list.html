@@ -1,9 +1,10 @@
 {# Página principal que muestra la lista de tickets del sistema #}
 {# Muestra diferentes opciones según el rol del usuario (Administrador, Técnico, Usuario) #}
+{# Incluye búsqueda avanzada, filtros múltiples y paginación #}
 {# Los administradores pueden asignar tickets, los técnicos cambiar estados #}
-{# Cada usuario ve solo los tickets relevantes para su rol y permisos #}
 
 {% extends 'tickets/base_intranet.html' %}
+{% load crispy_forms_tags %}
 {% block content %}
 
 <!-- Estadísticas del Dashboard -->
@@ -24,23 +25,69 @@
         <div class="stat-number">{{ resueltos_count }}</div>
         <div class="stat-label">Resueltos</div>
     </div>
+    <div class="stat-card cerrados">
+        <div class="stat-number">{{ cerrados_count }}</div>
+        <div class="stat-label">Cerrados</div>
+    </div>
+    <div class="stat-card sla-excedido">
+        <div class="stat-number">{{ sla_excedido_count }}</div>
+        <div class="stat-label">SLA Excedido</div>
+    </div>
 </div>
 
-<!-- SOLO UNA SECCIÓN DE TICKETS -->
+<!-- Formulario de búsqueda avanzada -->
+<div class="search-section">
+    <h3>🔍 Búsqueda Avanzada</h3>
+    <form method="get" action="{% url 'ticket_list' %}">
+        <div class="row">
+            <div class="col-md-6">
+                <label>Búsqueda por texto</label>
+                {{ form.busqueda }}
+            </div>
+            <div class="col-md-3">
+                <label>Estado</label>
+                {{ form.estado }}
+            </div>
+            <div class="col-md-3">
+                <label>Prioridad</label>
+                {{ form.prioridad }}
+            </div>
+        </div>
+        <div class="row row-second">
+            <div class="col-md-3">
+                <label>Área</label>
+                {{ form.area_afectada }}
+            </div>
+            <div class="col-md-3">
+                <label>Técnico asignado</label>
+                {{ form.asignado_a }}
+            </div>
+            <div class="col-md-3">
+                <label>Desde (últimos días)</label>
+                <select name="dias_atras" class="form-select">
+                    <option value="">Cualquier fecha</option>
+                    <option value="1">Últimas 24 horas</option>
+                    <option value="7">Últimos 7 días</option>
+                    <option value="30">Últimos 30 días</option>
+                    <option value="90">Últimos 90 días</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label>&nbsp;</label>
+                <div class="search-buttons-container">
+                    <button type="submit" class="btn btn-search-primary">🔍 Buscar</button>
+                    <a href="{% url 'ticket_list' %}" class="btn btn-reset-secondary" title="Reiniciar filtros">🔄</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- SECCIÓN DE TICKETS -->
 <div class="tickets-section">
     <div class="section-header">
-        <h3>
-            {% if filtro_aplicado %}
-                🎫 Tickets {{ estado_filtro|title }}
-            {% else %}
-                📋 Tickets Recientes
-            {% endif %}
-        </h3>
-        
-        <!-- Botón de crear ticket SOLO si no hay filtro aplicado -->
-        {% if not filtro_aplicado %}
+        <h3>📋 Lista de Tickets</h3>
         <a href="{% url 'ticket_create' %}" class="btn btn-primary">➕ Crear Nuevo Ticket</a>
-        {% endif %}
     </div>
     
     <table class="tickets-table">
@@ -73,7 +120,12 @@
                         {{ ticket.estado }}
                     </span>
                 </td>
-                <td>{{ ticket.fecha_creacion|date:"d/m/Y" }}</td>
+                <td>
+                    <div class="date-time-container">
+                        <div class="date-text">{{ ticket.fecha_creacion|date:"d/m/Y" }}</div>
+                        <div class="time-text">{{ ticket.fecha_creacion|date:"h:i A" }}</div>
+                    </div>
+                </td>
                 <td>
                     <div class="action-buttons">
                         <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-view">👁️ Ver</a>
@@ -88,24 +140,56 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
-                    {% if filtro_aplicado %}
-                    📭 No hay tickets {{ estado_filtro }} para mostrar
-                    {% else %}
+                <td colspan="8" class="empty-message">
                     📝 No hay tickets para mostrar
-                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     
-    <!-- Mensaje cuando hay filtro aplicado -->
-    {% if filtro_aplicado %}
-    <div style="text-align: center; margin-top: 1rem;">
-        <a href="{% url 'ticket_list' %}" class="btn btn-secondary">📊 Ver Todos los Tickets</a>
+    <!-- Paginación -->
+    {% if tickets.has_other_pages %}
+    <div class="pagination">
+        {% if tickets.has_previous %}
+            <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">« Primera</a>
+            <a href="?page={{ tickets.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">‹ Anterior</a>
+        {% endif %}
+
+        <span>Página {{ tickets.number }} de {{ tickets.paginator.num_pages }}</span>
+
+        {% if tickets.has_next %}
+            <a href="?page={{ tickets.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente ›</a>
+            <a href="?page={{ tickets.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Última »</a>
+        {% endif %}
     </div>
     {% endif %}
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Detectar si es primera visita al dashboard o navegación interna
+(function() {
+    const mainContent = document.querySelector('.main-content');
+    
+    // Verificar si ya estábamos en el dashboard
+    const wasInDashboard = sessionStorage.getItem('inDashboard');
+    
+    // Marcar que ahora estamos en el dashboard
+    sessionStorage.setItem('inDashboard', 'true');
+    
+    if (!wasInDashboard) {
+        // Primera vez en el dashboard - animar toda la página
+        mainContent.classList.add('page-load');
+    } else {
+        // Ya estábamos en el dashboard - solo animar tickets
+        const ticketRows = document.querySelectorAll('.tickets-table tbody tr');
+        ticketRows.forEach((row, index) => {
+            row.style.animation = `fadeInUp 0.3s ease-out ${index * 0.05}s both`;
+        });
+    }
+})();
+</script>
 {% endblock %}

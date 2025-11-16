@@ -36,6 +36,8 @@ function initializeForm() {
     setupPriorityValidation();
     setupPriorityVisualEffects();
     enhanceFormUX();
+    setupFilePreview();
+    setupDragAndDrop();
 }
 
 function setupCharacterCounter() {
@@ -208,4 +210,237 @@ function enhanceFormUX() {
     }
     
     console.log('✅ Mejoras de UX aplicadas');
+}
+
+/**
+ * Configura la vista previa de archivos adjuntos
+ * Muestra miniaturas de imágenes y nombres de otros archivos
+ * Permite acumular archivos seleccionándolos de forma incremental
+ */
+function setupFilePreview() {
+    console.log('📎 Configurando vista previa de archivos...');
+    
+    const fileInput = document.querySelector('input[type="file"][name="archivos"]');
+    
+    if (!fileInput) {
+        console.log('⚠️ No se encontró el input de archivos');
+        return;
+    }
+    
+    // Array para almacenar todos los archivos acumulados
+    let allFiles = [];
+    
+    // Crear contenedor de vista previa si no existe
+    let previewContainer = document.getElementById('file-preview-container');
+    if (!previewContainer) {
+        previewContainer = document.createElement('div');
+        previewContainer.id = 'file-preview-container';
+        previewContainer.className = 'file-preview-container';
+        fileInput.parentElement.appendChild(previewContainer);
+    }
+    
+    fileInput.addEventListener('change', function(e) {
+        console.log('📁 Archivos seleccionados:', e.target.files.length);
+        
+        if (e.target.files.length === 0) {
+            return;
+        }
+        
+        // Agregar nuevos archivos al array (evitar duplicados por nombre)
+        Array.from(e.target.files).forEach((newFile) => {
+            const isDuplicate = allFiles.some(existingFile => 
+                existingFile.name === newFile.name && existingFile.size === newFile.size
+            );
+            
+            if (!isDuplicate) {
+                allFiles.push(newFile);
+                console.log(`➕ Archivo agregado: ${newFile.name}`);
+            } else {
+                console.log(`⚠️ Archivo duplicado omitido: ${newFile.name}`);
+            }
+        });
+        
+        // Actualizar el input con todos los archivos acumulados
+        const dt = new DataTransfer();
+        allFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+        
+        // Renderizar todas las previsualizaciones
+        renderPreviews();
+    });
+    
+    function renderPreviews() {
+        previewContainer.innerHTML = '';
+        
+        allFiles.forEach((file, index) => {
+            const filePreview = document.createElement('div');
+            filePreview.className = 'file-preview-item';
+            
+            // Crear elemento de vista previa
+            const previewContent = document.createElement('div');
+            previewContent.className = 'file-preview-content';
+            
+            // Verificar si es imagen
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.className = 'file-preview-image';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                
+                previewContent.appendChild(img);
+            } else {
+                // Para archivos no-imagen, mostrar icono
+                const fileIcon = document.createElement('div');
+                fileIcon.className = 'file-preview-icon';
+                
+                // Determinar icono según extensión
+                const extension = file.name.split('.').pop().toLowerCase();
+                let icon = '📄';
+                
+                if (['pdf'].includes(extension)) icon = '📕';
+                else if (['doc', 'docx'].includes(extension)) icon = '📘';
+                else if (['xls', 'xlsx'].includes(extension)) icon = '📗';
+                else if (['txt'].includes(extension)) icon = '📃';
+                
+                fileIcon.textContent = icon;
+                previewContent.appendChild(fileIcon);
+            }
+            
+            // Información del archivo
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'file-preview-info';
+            
+            const fileName = document.createElement('div');
+            fileName.className = 'file-preview-name';
+            fileName.textContent = file.name;
+            fileName.title = file.name;
+            
+            const fileSize = document.createElement('div');
+            fileSize.className = 'file-preview-size';
+            fileSize.textContent = formatFileSize(file.size);
+            
+            fileInfo.appendChild(fileName);
+            fileInfo.appendChild(fileSize);
+            
+            // Botón para eliminar
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'file-preview-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'Eliminar archivo';
+            removeBtn.onclick = function() {
+                // Eliminar del array
+                allFiles.splice(index, 1);
+                console.log(`🗑️ Archivo eliminado: ${file.name}`);
+                
+                // Actualizar el input de archivos
+                const dt = new DataTransfer();
+                allFiles.forEach(f => dt.items.add(f));
+                fileInput.files = dt.files;
+                
+                // Volver a renderizar
+                renderPreviews();
+            };
+            
+            filePreview.appendChild(previewContent);
+            filePreview.appendChild(fileInfo);
+            filePreview.appendChild(removeBtn);
+            
+            previewContainer.appendChild(filePreview);
+        });
+        
+        console.log(`📊 Total de archivos: ${allFiles.length}`);
+    }
+    
+    console.log('✅ Vista previa de archivos configurada');
+}
+
+/**
+ * Formatea el tamaño del archivo en formato legible
+ */
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+}
+
+/**
+ * Configura la funcionalidad de drag & drop para archivos
+ */
+function setupDragAndDrop() {
+    console.log('🎯 Configurando drag & drop...');
+    
+    const uploadZone = document.getElementById('file-upload-zone');
+    const fileInput = document.querySelector('input[type="file"][name="archivos"]');
+    
+    if (!uploadZone || !fileInput) {
+        console.log('⚠️ No se encontró la zona de drag & drop');
+        return;
+    }
+    
+    // Prevenir comportamiento por defecto del navegador
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    // Destacar zona cuando se arrastra sobre ella
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    // Manejar el drop
+    uploadZone.addEventListener('drop', handleDrop, false);
+    
+    // Click en la zona para abrir selector
+    uploadZone.addEventListener('click', function(e) {
+        if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+            fileInput.click();
+        }
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight() {
+        uploadZone.classList.add('drag-over');
+    }
+    
+    function unhighlight() {
+        uploadZone.classList.remove('drag-over');
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        // Crear un nuevo evento con los archivos
+        const event = new Event('change', { bubbles: true });
+        
+        // Crear DataTransfer temporal para simular selección de archivos
+        const dataTransfer = new DataTransfer();
+        Array.from(files).forEach(file => dataTransfer.items.add(file));
+        fileInput.files = dataTransfer.files;
+        
+        // Disparar el evento change
+        fileInput.dispatchEvent(event);
+        
+        console.log(`📥 Archivos soltados: ${files.length}`);
+    }
+    
+    console.log('✅ Drag & drop configurado');
 }

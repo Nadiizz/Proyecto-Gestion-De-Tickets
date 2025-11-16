@@ -1,0 +1,246 @@
+{# Página para que los técnicos vean sus tickets asignados #}
+{# Muestra estadísticas, filtros y lista de tickets asignados al técnico #}
+{# Incluye alertas de SLA y prioridades críticas #}
+
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/mis_asignaciones.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Header de la página -->
+<div class="page-header">
+    <div class="header-content">
+        <h1>🎯 Mis Tickets Asignados</h1>
+        <p>Gestiona los tickets que tienes asignados</p>
+    </div>
+</div>
+
+<!-- Estadísticas del Técnico -->
+<div class="stats-grid">
+    <div class="stat-card total">
+        <div class="stat-icon">📋</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_asignados }}</div>
+            <div class="stat-label">Total Asignados</div>
+        </div>
+    </div>
+    
+    <div class="stat-card pendientes">
+        <div class="stat-icon">⏸️</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ tickets_pendientes }}</div>
+            <div class="stat-label">Pendientes</div>
+        </div>
+    </div>
+    
+    <div class="stat-card en-progreso">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ tickets_en_progreso }}</div>
+            <div class="stat-label">En Progreso</div>
+        </div>
+    </div>
+    
+    <div class="stat-card resueltos">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ tickets_resueltos }}</div>
+            <div class="stat-label">Resueltos</div>
+        </div>
+    </div>
+    
+    <div class="stat-card sla-excedido">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ tickets_sla_excedido }}</div>
+            <div class="stat-label">SLA Excedido</div>
+        </div>
+    </div>
+    
+    <div class="stat-card criticos">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ tickets_criticos }}</div>
+            <div class="stat-label">Críticos Activos</div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas -->
+{% if tickets_criticos > 0 or tickets_por_vencer > 0 or tickets_sla_excedido > 0 %}
+<div class="alerts-section">
+    {% if tickets_criticos > 0 %}
+    <div class="alert alert-critical">
+        <span class="alert-icon">🚨</span>
+        <div class="alert-content">
+            <strong>Atención:</strong> Tienes {{ tickets_criticos }} ticket{{ tickets_criticos|pluralize }} de prioridad CRÍTICA sin resolver.
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if tickets_por_vencer > 0 %}
+    <div class="alert alert-warning">
+        <span class="alert-icon">⏰</span>
+        <div class="alert-content">
+            <strong>Advertencia:</strong> {{ tickets_por_vencer }} ticket{{ tickets_por_vencer|pluralize }} vence{{ tickets_por_vencer|pluralize:"n" }} su SLA en menos de 2 horas.
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if tickets_sla_excedido > 0 %}
+    <div class="alert alert-danger">
+        <span class="alert-icon">❌</span>
+        <div class="alert-content">
+            <strong>Urgente:</strong> {{ tickets_sla_excedido }} ticket{{ tickets_sla_excedido|pluralize }} ha{{ tickets_sla_excedido|pluralize:"n" }} excedido el tiempo límite SLA.
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Filtros -->
+<div class="filters-section">
+    <h3>🔍 Filtrar Tickets</h3>
+    <form method="get" class="filters-form">
+        <div class="filter-group">
+            <label for="estado">Estado:</label>
+            <select name="estado" id="estado" class="filter-select">
+                <option value="">Todos</option>
+                <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                <option value="en_progreso" {% if estado_filtro == 'en_progreso' %}selected{% endif %}>En Progreso</option>
+                <option value="resuelto" {% if estado_filtro == 'resuelto' %}selected{% endif %}>Resuelto</option>
+                <option value="cerrado" {% if estado_filtro == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                <option value="tiempo_excedido" {% if estado_filtro == 'tiempo_excedido' %}selected{% endif %}>SLA Excedido</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="prioridad">Prioridad:</label>
+            <select name="prioridad" id="prioridad" class="filter-select">
+                <option value="">Todas</option>
+                <option value="critica" {% if prioridad_filtro == 'critica' %}selected{% endif %}>Crítica</option>
+                <option value="alta" {% if prioridad_filtro == 'alta' %}selected{% endif %}>Alta</option>
+                <option value="media" {% if prioridad_filtro == 'media' %}selected{% endif %}>Media</option>
+                <option value="baja" {% if prioridad_filtro == 'baja' %}selected{% endif %}>Baja</option>
+            </select>
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+            <a href="{% url 'mis_asignaciones' %}" class="btn btn-secondary">🔄 Limpiar</a>
+        </div>
+    </form>
+</div>
+
+<!-- Lista de Tickets -->
+<div class="tickets-section">
+    <div class="section-header">
+        <h3>📋 Mis Tickets ({{ total_asignados }})</h3>
+    </div>
+    
+    {% if tickets %}
+    <div class="tickets-table-container">
+        <table class="tickets-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Título</th>
+                    <th>Creador</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th>SLA</th>
+                    <th>Creado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                <tr class="{% if ticket.prioridad == 'critica' %}ticket-critico{% endif %}">
+                    <td class="ticket-id">#{{ ticket.id }}</td>
+                    <td class="ticket-titulo">
+                        <a href="{% url 'ticket_detalle' ticket.id %}">{{ ticket.titulo }}</a>
+                    </td>
+                    <td>{{ ticket.creador.username }}</td>
+                    <td>
+                        <span class="priority-badge priority-{{ ticket.prioridad }}">
+                            {{ ticket.get_prioridad_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ ticket.estado }}">
+                            {{ ticket.get_estado_display }}
+                        </span>
+                    </td>
+                    <td class="sla-column">
+                        {% if ticket.tiempo_limite_resolucion %}
+                            {% if ticket.estado in 'pendiente,en_progreso' %}
+                                {% if ticket.tiempo_limite_resolucion < now %}
+                                    <span class="sla-badge sla-excedido">⚠️ Excedido</span>
+                                {% else %}
+                                    {% with tiempo_restante=ticket.tiempo_limite_resolucion|timeuntil %}
+                                    <span class="sla-badge sla-ok">⏱️ {{ tiempo_restante }}</span>
+                                    {% endwith %}
+                                {% endif %}
+                            {% else %}
+                                <span class="sla-badge sla-completado">✅ Completado</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="sla-badge sla-none">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="date-time-container">
+                            <span class="date-text">{{ ticket.fecha_creacion|date:"d/m/Y" }}</span>
+                            <span class="time-text">{{ ticket.fecha_creacion|date:"H:i" }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-sm btn-info" title="Ver detalle">
+                                👁️
+                            </a>
+                            <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-sm btn-warning" title="Cambiar estado">
+                                🔄
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if tickets.has_other_pages %}
+    <div class="pagination">
+        {% if tickets.has_previous %}
+            <a href="?page=1{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}" class="page-link">⏮️ Primera</a>
+            <a href="?page={{ tickets.previous_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}" class="page-link">⬅️ Anterior</a>
+        {% endif %}
+
+        <span class="page-info">
+            Página {{ tickets.number }} de {{ tickets.paginator.num_pages }}
+        </span>
+
+        {% if tickets.has_next %}
+            <a href="?page={{ tickets.next_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}" class="page-link">Siguiente ➡️</a>
+            <a href="?page={{ tickets.paginator.num_pages }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}" class="page-link">Última ⏭️</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h3>No tienes tickets asignados</h3>
+        <p>No hay tickets que coincidan con los filtros seleccionados.</p>
+        <a href="{% url 'mis_asignaciones' %}" class="btn btn-primary">🔄 Ver Todos</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -15,7 +15,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="user-info">
-                    <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Logo" style="height: 100px; margin-bottom: 1rem;">
+                    <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Logo" class="sidebar-logo">
                     <div class="company-info">
                     </div>
                 </div>
@@ -25,14 +25,30 @@
                 <ul class="sidebar-menu">
                     <li><a href="{% url 'ticket_list' %}" class="{% if request.resolver_match.url_name == 'ticket_list' %}active{% endif %}">📊 Dashboard</a></li>
                     <li><a href="{% url 'ticket_create' %}" class="{% if request.resolver_match.url_name == 'ticket_create' %}active{% endif %}">📋 Crear Ticket</a></li>
+                    
+                    <!-- Métricas (solo para administradores) -->
+                    {% if user.groups.all.0.name == 'Administrador' %}
+                    <li><a href="{% url 'metricas' %}" class="{% if request.resolver_match.url_name == 'metricas' %}active{% endif %}">📈 Métricas</a></li>
+                    {% endif %}
+                    
                     <!-- Menú TICKETS-->
                     <li class="menu-section">🎫 TICKETS</li>
                     <li><a href="{% url 'ticket_list' %}?estado=pendiente" class="{% if request.GET.estado == 'pendiente' %}active{% endif %}">⏳ Pendientes</a></li>
                     <li><a href="{% url 'ticket_list' %}?estado=abierto" class="{% if request.GET.estado == 'abierto' %}active{% endif %}">🟡 Abiertos</a></li>
                     <li><a href="{% url 'ticket_list' %}?estado=en_progreso" class="{% if request.GET.estado == 'en_progreso' %}active{% endif %}">🔵 En Progreso</a></li>
                     <li><a href="{% url 'ticket_list' %}?estado=resuelto" class="{% if request.GET.estado == 'resuelto' %}active{% endif %}">🟢 Resueltos</a></li>
+                    <li><a href="{% url 'ticket_list' %}?estado=cerrado" class="{% if request.GET.estado == 'cerrado' %}active{% endif %}">⚫ Cerrados</a></li>
+                    <li><a href="{% url 'ticket_list' %}?estado=tiempo_excedido" class="{% if request.GET.estado == 'tiempo_excedido' %}active{% endif %}">⚠️ SLA Excedido</a></li>
+                    
                     <!-- Usuario -->
                     <li class="menu-section">👤 USUARIO</li>
+                    <li><a href="{% url 'mis_tickets' %}" class="{% if request.resolver_match.url_name == 'mis_tickets' %}active{% endif %}">🎫 Mis Tickets</a></li>
+                    
+                    <!-- Técnicos: Mis Asignaciones -->
+                    {% if user.groups.all.0.name == 'Técnico' or user.groups.all.0.name == 'Administrador' %}
+                    <li><a href="{% url 'mis_asignaciones' %}" class="{% if request.resolver_match.url_name == 'mis_asignaciones' %}active{% endif %}">🎯 Mis Asignaciones</a></li>
+                    {% endif %}
+                    
                     <li><a href="{% url 'login' %}">🚪 Cerrar Sesión</a></li>
                 </ul>
             </nav>
@@ -58,5 +74,7 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

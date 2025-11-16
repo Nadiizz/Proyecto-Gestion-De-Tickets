@@ -60,6 +60,26 @@
             </select>
         </div>
 
+        <div class="form-group">
+            <label for="prioridad" class="form-label">🔥 Asignar Prioridad:</label>
+            <select name="prioridad" id="prioridad" class="form-select" required>
+                <option value="">-- Selecciona la prioridad --</option>
+                <option value="baja" {% if ticket.prioridad == 'baja' %}selected{% endif %}>🟢 Baja - No afecta operaciones</option>
+                <option value="media" {% if ticket.prioridad == 'media' %}selected{% endif %}>🟡 Media - Afecta algunas funciones</option>
+                <option value="alta" {% if ticket.prioridad == 'alta' %}selected{% endif %}>🟠 Alta - Impacta trabajo diario</option>
+                <option value="critica" {% if ticket.prioridad == 'critica' %}selected{% endif %}>🔴 Crítica - Sistema no funciona</option>
+            </select>
+        </div>
+
+        <div class="form-group sla-section">
+            <label for="horas_sla" class="form-label-center">⏰ Tiempo Límite SLA</label>
+            <div class="sla-container">
+                <input type="number" name="horas_sla" id="horas_sla" class="sla-input" 
+                       min="1" max="168" step="1" placeholder="Horas">
+            </div>
+            <small class="form-help-center">💡 Opcional: Deja vacío para usar tiempo por defecto según prioridad<br>(Crítica: 4hrs • Alta: 8hrs • Media: 24hrs • Baja: 48hrs)</small>
+        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
                 ✅ Asignar Ticket
@@ -72,4 +92,11 @@
 </div>
 
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Limpiar marca de dashboard al visitar asignar ticket
+    sessionStorage.removeItem('inDashboard');
+</script>
 {% endblock %}

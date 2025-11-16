@@ -46,7 +46,7 @@
                     {% if ticket.asignado_a %}
                         {{ ticket.asignado_a.username }}
                     {% else %}
-                        <span style="color: #e74c3c;">Sin asignar</span>
+                        <span class="text-danger">Sin asignar</span>
                     {% endif %}
                 </span>
             </div>
@@ -69,9 +69,10 @@
                         {% if ticket.estado == estado_key %}checked{% endif %}>
                     <span class="status-option-content">
                         <span class="status-icon">
-                            {% if estado_key == 'abierto' %}🟡{% endif %}
+                            {% if estado_key == 'pendiente' %}🟡{% endif %}
                             {% if estado_key == 'en_progreso' %}🔵{% endif %}
                             {% if estado_key == 'resuelto' %}🟢{% endif %}
+                            {% if estado_key == 'cerrado' %}⚫{% endif %}
                         </span>
                         <span class="status-text">{{ estado_value }}</span>
                         <span class="status-badge status-{{ estado_key }}">{{ estado_value }}</span>
@@ -101,4 +102,11 @@
     </form>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Limpiar marca de dashboard al visitar cambiar estado
+    sessionStorage.removeItem('inDashboard');
+</script>
 {% endblock %}

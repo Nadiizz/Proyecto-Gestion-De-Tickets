@@ -29,6 +29,18 @@ body.register-page {
     padding: 40px 30px;
     width: 500px;
     text-align: center;
+    animation: fadeInScale 0.6s ease-out;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 /* Estilos para la sección del logo y título */
@@ -281,7 +293,14 @@ body.register-page {
     background-repeat: no-repeat;
     background-position: right 15px center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-select:hover {
+    background-color: white;
+    border-color: #667eea;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
 }
 
 .custom-select:focus {
@@ -289,10 +308,20 @@ body.register-page {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     background-color: white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 8.825L1.175 4 2.238 2.938 6 6.7l3.763-3.762L10.825 4z'/%3E%3C/svg%3E");
+}
+
+.custom-select:active {
+    transform: translateY(0);
 }
 
 .custom-select option {
     padding: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.custom-select option:hover {
+    background-color: #e3f2fd;
 }
 
 .custom-select option:first-child {

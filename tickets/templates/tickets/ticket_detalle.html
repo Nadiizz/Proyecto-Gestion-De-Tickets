@@ -11,6 +11,14 @@
 <link rel="stylesheet" href="{% static 'tickets/css/ticket_detalle.css' %}">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{% static 'tickets/js/ticket_detalle.js' %}"></script>
+<script>
+    // Limpiar marca de dashboard al visitar detalle de ticket
+    sessionStorage.removeItem('inDashboard');
+</script>
+{% endblock %}
+
 {% block content %}
 
 <div class="ticket-detail-container">
@@ -46,7 +54,7 @@
                     {% if ticket.asignado_a %}
                         {{ ticket.asignado_a.username }}
                     {% else %}
-                        <span style="color: #e74c3c;">Sin asignar</span>
+                        <span class="text-danger">Sin asignar</span>
                     {% endif %}
                 </p>
             </div>
@@ -58,6 +66,23 @@
                 <h3>📅 Fecha creación</h3>
                 <p>{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
             </div>
+            {% if user.groups.all.0.name == 'Técnico' or user.is_superuser %}
+            <div class="info-card">
+                <h3>⏰ Límite SLA</h3>
+                <p>
+                    {% if ticket.tiempo_limite_resolucion %}
+                        {{ ticket.tiempo_limite_resolucion|date:"d/m/Y H:i" }}
+                        {% if ticket.tiempo_limite_resolucion < now %}
+                            <br><span class="sla-excedido">⚠️ Excedido</span>
+                        {% else %}
+                            <br><span class="sla-cumplido">✓ Dentro del tiempo</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">No definido</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -68,6 +93,76 @@
             {{ ticket.descripcion|linebreaks }}
         </div>
     </div>
+
+    {# Sección de calificación del servicio (solo para el creador si el ticket está cerrado) #}
+    {% if user == ticket.creador and ticket.estado in 'resuelto,cerrado' and ticket.asignado_a %}
+    <div class="rating-section" id="rating">
+        <h2>⭐ Calificar Servicio del Técnico</h2>
+        {% if ticket.calificacion_satisfaccion %}
+            <div class="rating-display">
+                <p>Ya calificaste el servicio del técnico <strong>{{ ticket.asignado_a.username }}</strong> con:</p>
+                <div class="stars-display">
+                    {% for i in "12345" %}
+                        <span class="star {% if forloop.counter <= ticket.calificacion_satisfaccion %}filled{% endif %}">★</span>
+                    {% endfor %}
+                </div>
+                <p class="rating-text">{{ ticket.calificacion_satisfaccion }} de 5 estrellas</p>
+            </div>
+        {% else %}
+            <form method="post" action="{% url 'calificar_ticket' ticket.id %}" class="rating-form">
+                {% csrf_token %}
+                <p>¿Cómo calificarías el servicio del técnico <strong>{{ ticket.asignado_a.username }}</strong>?</p>
+                <div class="stars-input">
+                    <input type="radio" name="calificacion" value="5" id="star5">
+                    <label for="star5" title="Excelente">★</label>
+                    <input type="radio" name="calificacion" value="4" id="star4">
+                    <label for="star4" title="Muy bueno">★</label>
+                    <input type="radio" name="calificacion" value="3" id="star3">
+                    <label for="star3" title="Bueno">★</label>
+                    <input type="radio" name="calificacion" value="2" id="star2">
+                    <label for="star2" title="Regular">★</label>
+                    <input type="radio" name="calificacion" value="1" id="star1">
+                    <label for="star1" title="Malo">★</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Enviar Calificación</button>
+            </form>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# Sección de archivos adjuntos del ticket #}
+    {% if archivos_ticket %}
+    <div class="ticket-attachments">
+        <h2>📎 Archivos Adjuntos</h2>
+        <div class="attachments-grid">
+            {% for archivo in archivos_ticket %}
+            <div class="attachment-card">
+                <div class="attachment-icon">
+                    {% if archivo.es_imagen %}
+                        <img src="{{ archivo.archivo.url }}" alt="{{ archivo.nombre_archivo }}" class="attachment-thumbnail">
+                    {% else %}
+                        <span class="file-icon">
+                            {% if archivo.extension == 'pdf' %}📄{% endif %}
+                            {% if archivo.extension in 'doc,docx' %}📝{% endif %}
+                            {% if archivo.extension in 'xls,xlsx' %}📊{% endif %}
+                            {% if archivo.extension == 'txt' %}📃{% endif %}
+                            {% if archivo.extension not in 'pdf,doc,docx,xls,xlsx,txt' %}📋{% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="attachment-info">
+                    <a href="{{ archivo.archivo.url }}" class="attachment-name" download>{{ archivo.nombre_archivo }}</a>
+                    <div class="attachment-meta">
+                        <span>👤 {{ archivo.subido_por.username }}</span>
+                        <span>📅 {{ archivo.fecha_subida|date:"d/m/Y H:i" }}</span>
+                    </div>
+                </div>
+                <a href="{{ archivo.archivo.url }}" class="btn-download" download>⬇️</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     {# Sección de comentarios e historial en dos columnas #}
     <div class="comments-history-section">
@@ -145,11 +240,34 @@
     {# Formulario para agregar nuevos comentarios al ticket #}
     <div class="comment-form">
         <h3 class="section-title">✍️ Agregar Comentario</h3>
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="form-group">
                 {# Área de texto para escribir el comentario #}
                 <textarea name="mensaje" class="form-textarea" placeholder="Escribe tu comentario aquí..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="archivos_comentario" class="form-label">📎 Archivos Adjuntos (opcional)</label>
+                <div class="file-upload-zone" id="comment-file-upload-zone">
+                    <div class="file-upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h3 class="upload-title">Selecciona o arrastra archivos aquí</h3>
+                        <p class="upload-description">Haz clic para explorar o arrastra los archivos</p>
+                        <input type="file" 
+                               name="archivos_comentario" 
+                               id="archivos_comentario" 
+                               class="file-input-hidden" 
+                               accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls"
+                               multiple>
+                        <button type="button" class="btn-upload" onclick="document.getElementById('archivos_comentario').click()">
+                            <span class="btn-upload-icon">📤</span> Seleccionar Archivos
+                        </button>
+                    </div>
+                </div>
+                <div id="comment-file-preview" class="file-preview-container"></div>
+                <div class="help-text">
+                    💡 <strong>Tip:</strong> Puedes seleccionar múltiples archivos o arrastrarlos directamente aquí.
+                </div>
             </div>
             {# Botón para publicar el comentario #}
             <button type="submit" class="btn btn-primary">📤 Publicar Comentario</button>
