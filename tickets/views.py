@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -267,8 +267,19 @@ def asignar_ticket(request, ticket_id):
         )
         
         return redirect('ticket_list')
+    
     # Obtiene la lista de todos los técnicos disponibles
-    tecnicos = User.objects.filter(groups__name=GRUPO_TECNICO)
+    # Excluye al creador del ticket para evitar conflicto de interés
+    tecnicos = User.objects.filter(groups__name=GRUPO_TECNICO).exclude(id=ticket.creador.id)
+    
+    # Verificar si hay técnicos disponibles
+    if not tecnicos.exists():
+        messages.warning(
+            request,
+            'No hay técnicos disponibles para asignar este ticket. '
+            'El creador del ticket no puede ser asignado al mismo.'
+        )
+    
     return render(request, 'tickets/asignar_ticket.html', {
         'ticket': ticket,
         'tecnicos': tecnicos
@@ -360,6 +371,14 @@ def registro(request):
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/registro.html', {'form': form})
+
+
+def cerrar_sesion(request):
+    """Vista personalizada para cerrar sesión que permite GET y POST"""
+    logout(request)
+    # Redirigir al login con parámetro GET para mostrar mensaje
+    return redirect('/login/?logout=success')
+
 
 def ticket_detalle(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)

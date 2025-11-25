@@ -3,6 +3,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     {% load static %}
     <title>Gestión de Tickets - Coyahue</title>
     <link rel="stylesheet" href="{% static 'tickets/css/styles.css' %}">
@@ -11,8 +14,18 @@
 
 <body>
     <div class="dashboard-container">
+        <!-- Botón Hamburguesa (solo móvil) -->
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <!-- Overlay para cerrar menú (móvil) -->
+        <div class="menu-overlay" id="menuOverlay"></div>
+
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="user-info">
                     <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Logo" class="sidebar-logo">
@@ -27,9 +40,11 @@
                     <li><a href="{% url 'ticket_create' %}" class="{% if request.resolver_match.url_name == 'ticket_create' %}active{% endif %}">📋 Crear Ticket</a></li>
                     
                     <!-- Métricas (solo para administradores) -->
-                    {% if user.groups.all.0.name == 'Administrador' %}
-                    <li><a href="{% url 'metricas' %}" class="{% if request.resolver_match.url_name == 'metricas' %}active{% endif %}">📈 Métricas</a></li>
-                    {% endif %}
+                    {% with user_group=user.groups.all|first %}
+                        {% if user_group.name == 'Administrador' %}
+                        <li><a href="{% url 'metricas' %}" class="{% if request.resolver_match.url_name == 'metricas' %}active{% endif %}">📈 Métricas</a></li>
+                        {% endif %}
+                    {% endwith %}
                     
                     <!-- Menú TICKETS-->
                     <li class="menu-section">🎫 TICKETS</li>
@@ -45,11 +60,13 @@
                     <li><a href="{% url 'mis_tickets' %}" class="{% if request.resolver_match.url_name == 'mis_tickets' %}active{% endif %}">🎫 Mis Tickets</a></li>
                     
                     <!-- Técnicos: Mis Asignaciones -->
-                    {% if user.groups.all.0.name == 'Técnico' or user.groups.all.0.name == 'Administrador' %}
-                    <li><a href="{% url 'mis_asignaciones' %}" class="{% if request.resolver_match.url_name == 'mis_asignaciones' %}active{% endif %}">🎯 Mis Asignaciones</a></li>
-                    {% endif %}
+                    {% with user_group=user.groups.all|first %}
+                        {% if user_group.name == 'Técnico' or user_group.name == 'Administrador' %}
+                        <li><a href="{% url 'mis_asignaciones' %}" class="{% if request.resolver_match.url_name == 'mis_asignaciones' %}active{% endif %}">🎯 Mis Asignaciones</a></li>
+                        {% endif %}
+                    {% endwith %}
                     
-                    <li><a href="{% url 'login' %}">🚪 Cerrar Sesión</a></li>
+                    <li><a href="{% url 'logout' %}">🚪 Cerrar Sesión</a></li>
                 </ul>
             </nav>
         </aside>
@@ -62,18 +79,96 @@
                 <div class="header-right">
                     <span class="user-welcome">Bienvenido, {{ user.username }}</span>
                     <span class="user-role-badge">
-                        {% if user.groups.all %}
-                            {{ user.groups.all.0.name }}
-                        {% else %}
-                            Usuario
-                        {% endif %}
+                        {% with user_group=user.groups.all|first %}
+                            {% if user_group %}
+                                {{ user_group.name }}
+                            {% else %}
+                                Usuario
+                            {% endif %}
+                        {% endwith %}
                     </span>
                 </div>
             </header>
             
+            <!-- Mensajes del sistema -->
+            {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
             {% block content %}{% endblock %}
         </main>
     </div>
+    
+    <script>
+        // Toggle menú hamburguesa
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', () => {
+                const isOpen = sidebar.classList.toggle('open');
+                menuToggle.setAttribute('aria-expanded', isOpen);
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+            });
+
+            // Cerrar menú al hacer clic en overlay
+            menuOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                menuToggle.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            });
+
+            // Cerrar menú al hacer clic en un enlace
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('open');
+                        menuToggle.setAttribute('aria-expanded', 'false');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+
+            // Cerrar menú con tecla Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                    menuToggle.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // Cerrar mensajes automáticamente después de 5 segundos
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-20px)';
+                    setTimeout(() => alert.remove(), 300);
+                }, 5000);
+            });
+
+            // Cerrar mensajes manualmente
+            document.querySelectorAll('.btn-close').forEach(button => {
+                button.addEventListener('click', function() {
+                    const alert = this.parentElement;
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-20px)';
+                    setTimeout(() => alert.remove(), 300);
+                });
+            });
+        });
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

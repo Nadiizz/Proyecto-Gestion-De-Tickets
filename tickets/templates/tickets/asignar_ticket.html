@@ -47,17 +47,36 @@
         </div>
     </div>
 
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <form method="post" class="assignment-form">
         {% csrf_token %}
         
         <div class="form-group">
             <label for="tecnico" class="form-label">🎯 Seleccionar Técnico:</label>
+            {% if tecnicos %}
             <select name="tecnico" id="tecnico" class="form-select" required>
                 <option value="">-- Selecciona un técnico --</option>
                 {% for t in tecnicos %}
                 <option value="{{ t.id }}">👨‍💻 {{ t.get_full_name|default:t.username }} - {{ t.email }}</option>
                 {% endfor %}
             </select>
+            <small class="form-help">
+                ℹ️ El creador del ticket ({{ ticket.creador.username }}) no puede ser asignado para evitar conflicto de interés
+            </small>
+            {% else %}
+            <div class="alert alert-warning">
+                ⚠️ No hay técnicos disponibles para asignar. El creador del ticket no puede ser asignado al mismo.
+            </div>
+            {% endif %}
         </div>
 
         <div class="form-group">
@@ -81,9 +100,11 @@
         </div>
 
         <div class="form-actions">
+            {% if tecnicos %}
             <button type="submit" class="btn btn-primary">
                 ✅ Asignar Ticket
             </button>
+            {% endif %}
             <a href="{% url 'ticket_list' %}" class="btn btn-secondary">
                 ↩️ Volver al Dashboard
             </a>

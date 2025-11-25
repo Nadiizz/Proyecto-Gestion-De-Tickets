@@ -266,12 +266,50 @@
     font-size: 1.2rem;
 }
 
+.form-help {
+    display: block;
+    margin-top: 0.5rem;
+    color: #7f8c8d;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
 .form-help-center {
     display: block;
     text-align: center;
     color: #7f8c8d;
     font-size: 0.9rem;
     line-height: 1.6;
+}
+
+/* Mensajes y alertas */
+.messages-container {
+    margin-bottom: 1.5rem;
+}
+
+.alert {
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border-left: 4px solid;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border-left-color: #ffc107;
 }
 
 /* Responsive */

@@ -3,48 +3,61 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'tickets/css/register.css' %}">
+<link rel="stylesheet" href="{% static 'tickets/css/login.css' %}">
 {% endblock %}
 
-{% block body_class %}register-page{% endblock %}
+{% block body_class %}login-page{% endblock %}
 
 {% block content %}
-<div class="register-container">
-    <div class="register-logo">
-        <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Grupo Coyahue">
-        <h1>Grupo Coyahue</h1>
-        <p>Sistema de Gestión de Tickets</p>
-    </div>
+<div class="auth-wrapper">
+    <div class="auth-container">
+        <!-- Panel Izquierdo - Branding -->
+        <div class="auth-brand-panel">
+            <div class="brand-content">
+                <div class="brand-logo">
+                    <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Grupo Coyahue">
+                </div>
+                <h1 class="brand-title">Grupo Coyahue</h1>
+                <p class="brand-subtitle">Sistema de Gestión de Tickets</p>
+            </div>
+        </div>
 
-    <div class="form-title">
-        <h2>Registro de Usuario</h2>
-        <p class="subtitle">Crea tu cuenta para comenzar</p>
-    </div>
+        <!-- Panel Derecho - Formulario -->
+        <div class="auth-form-panel">
+            <div class="form-content">
+                <div class="form-header">
+                    <h2>Crear cuenta nueva</h2>
+                    <p>Completa el formulario para registrarte</p>
+                </div>
 
-    <div class="form-divider"></div>
-
-    <form method="post" class="register-form">
-        {% csrf_token %}
-        {{ form|crispy }}
-
-                        {% if form.errors %}
-                        <div class="alert alert-danger">
-                            <ul>
-                            {% for field in form %}
-                                {% for error in field.errors %}
-                                    <li>{{ error }}</li>
-                                {% endfor %}
+                {% if form.errors %}
+                <div class="alert alert-error">
+                    <span class="alert-icon">⚠️</span>
+                    <div class="error-list">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <div>{{ error }}</div>
                             {% endfor %}
-                            </ul>
-                        </div>
-                        {% endif %}
-                        
-        <button type="submit" class="register-submit">Registrarse</button>
-    </form>
-    
-    <div class="login-link">
-        <p>¿Ya tienes una cuenta?</p>
-        <a href="{% url 'login' %}">Iniciar Sesión</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" class="auth-form">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    
+                    <button type="submit" class="btn-primary">
+                        Registrarse
+                    </button>
+                </form>
+
+                <div class="form-footer">
+                    <p>¿Ya tienes una cuenta?</p>
+                    <a href="{% url 'login' %}" class="link-register">Iniciar sesión aquí</a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -160,22 +160,22 @@
             <tbody>
                 {% for ticket in tickets %}
                 <tr class="{% if ticket.prioridad == 'critica' %}ticket-critico{% endif %}">
-                    <td class="ticket-id">#{{ ticket.id }}</td>
-                    <td class="ticket-titulo">
+                    <td class="ticket-id" data-label="ID">#{{ ticket.id }}</td>
+                    <td class="ticket-titulo" data-label="Título">
                         <a href="{% url 'ticket_detalle' ticket.id %}">{{ ticket.titulo }}</a>
                     </td>
-                    <td>{{ ticket.creador.username }}</td>
-                    <td>
+                    <td data-label="Creador">{{ ticket.creador.username }}</td>
+                    <td data-label="Prioridad">
                         <span class="priority-badge priority-{{ ticket.prioridad }}">
                             {{ ticket.get_prioridad_display }}
                         </span>
                     </td>
-                    <td>
+                    <td data-label="Estado">
                         <span class="status-badge status-{{ ticket.estado }}">
                             {{ ticket.get_estado_display }}
                         </span>
                     </td>
-                    <td class="sla-column">
+                    <td class="sla-column" data-label="SLA">
                         {% if ticket.tiempo_limite_resolucion %}
                             {% if ticket.estado in 'pendiente,en_progreso' %}
                                 {% if ticket.tiempo_limite_resolucion < now %}
@@ -192,13 +192,13 @@
                             <span class="sla-badge sla-none">—</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td data-label="Creado">
                         <div class="date-time-container">
                             <span class="date-text">{{ ticket.fecha_creacion|date:"d/m/Y" }}</span>
                             <span class="time-text">{{ ticket.fecha_creacion|date:"H:i" }}</span>
                         </div>
                     </td>
-                    <td>
+                    <td data-label="Acciones">
                         <div class="action-buttons">
                             <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-sm btn-info" title="Ver detalle">
                                 👁️
