@@ -2,13 +2,14 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from .models import Ticket, ArchivoTicket, ArchivoComentario
 import re
 
-# Constantes
-GRUPO_ADMINISTRADOR = 'Administrador'
-GRUPO_TECNICO = 'Técnico'
-GRUPO_USUARIO = 'Usuario'
+# Importar constantes desde settings
+GRUPO_ADMINISTRADOR = settings.GRUPO_ADMINISTRADOR
+GRUPO_TECNICO = settings.GRUPO_TECNICO
+GRUPO_USUARIO = settings.GRUPO_USUARIO
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -121,7 +122,7 @@ class TicketForm(forms.ModelForm):
     
     class Meta:
         model = Ticket
-        fields = ['titulo', 'tipo', 'descripcion', 'area_afectada']
+        fields = ['titulo', 'tipo', 'categoria', 'subcategoria', 'descripcion']
         widgets = {
             'titulo': forms.TextInput(attrs={
                 'class': 'form-input', 
@@ -131,19 +132,24 @@ class TicketForm(forms.ModelForm):
             'tipo': forms.Select(attrs={
                 'class': 'form-select'
             }),
+            'categoria': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_categoria'
+            }),
+            'subcategoria': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_subcategoria'
+            }),
             'descripcion': forms.Textarea(attrs={
                 'class': 'form-textarea', 
                 'placeholder': 'Describe el problema en detalle. Incluye pasos para reproducirlo, mensajes de error, equipo afectado, y cualquier información relevante...',
                 'rows': 6
             }),
-            'area_afectada': forms.TextInput(attrs={
-                'class': 'form-input', 
-                'placeholder': 'Ej: IT, RRHH, Finanzas'
-            }),
         }
         labels = {
             'titulo': 'Título',
             'tipo': 'Tipo de Solicitud',
+            'categoria': 'Categoría',
+            'subcategoria': 'Subcategoría',
             'descripcion': 'Descripción',
-            'area_afectada': 'Área afectada',
         }

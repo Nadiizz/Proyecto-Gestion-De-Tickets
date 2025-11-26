@@ -1,0 +1,120 @@
+﻿{% extends "tickets/base_intranet.html" %}
+{% load static %}
+
+{% block title %}Editar Usuario - Coyahue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_common.css' %}">
+<link rel="stylesheet" href="{% static 'tickets/css/admin_forms.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1> Editar Usuario</h1>
+        <p>Modifique la información del usuario</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        {# Foto de Perfil #}
+        <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 2rem;">
+            {% if perfil.foto_perfil %}
+                <img src="{{ perfil.foto_perfil.url }}" alt="{{ usuario.username }}" class="user-avatar-large">
+            {% else %}
+                <div class="user-avatar-large initial">{{ usuario.first_name|first|upper|default:usuario.username|first|upper }}</div>
+            {% endif %}
+            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Foto del usuario (editable desde su perfil)</p>
+        </div>
+        
+        <div class="form-section">
+            <h3>📋 Información Básica</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username" class="required">Nombre de Usuario</label>
+                    <input type="text" id="username" name="username" class="form-control" value="{{ usuario.username }}" disabled>
+                    <small class="help-text">El nombre de usuario no se puede modificar</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="required">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" value="{{ usuario.email }}" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">Nombre</label>
+                    <input type="text" id="first_name" name="first_name" class="form-control" value="{{ usuario.first_name }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="last_name">Apellido</label>
+                    <input type="text" id="last_name" name="last_name" class="form-control" value="{{ usuario.last_name }}">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>👤 Información de Perfil</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="tel" id="telefono" name="telefono" class="form-control" value="{% if perfil %}{{ perfil.telefono }}{% endif %}" placeholder="+56912345678">
+                </div>
+                
+                <div class="form-group">
+                    <label for="cargo">Cargo</label>
+                    <input type="text" id="cargo" name="cargo" class="form-control" value="{% if perfil %}{{ perfil.cargo }}{% endif %}">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="departamento">Departamento</label>
+                    <input type="text" id="departamento" name="departamento" class="form-control" value="{% if perfil %}{{ perfil.departamento }}{% endif %}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ubicacion">Ubicación</label>
+                    <input type="text" id="ubicacion" name="ubicacion" class="form-control" value="{% if perfil %}{{ perfil.ubicacion }}{% endif %}">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>🔑 Permisos y Roles</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="grupo">Grupo</label>
+                    <select id="grupo" name="grupo" class="form-control">
+                        <option value="">-- Seleccionar grupo --</option>
+                        {% for grupo in grupos %}
+                            <option value="{{ grupo.id }}" {% if grupo_actual and grupo.id == grupo_actual.id %}selected{% endif %}>{{ grupo.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rol_personalizado">Rol Personalizado</label>
+                    <select id="rol_personalizado" name="rol_personalizado" class="form-control">
+                        <option value="">-- Sin rol personalizado --</option>
+                        {% for rol in roles %}
+                            <option value="{{ rol.id }}" {% if perfil.rol_personalizado and rol.id == perfil.rol_personalizado.id %}selected{% endif %}>{{ rol.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">✓ Guardar Cambios</button>
+            <a href="{% url 'admin_usuarios' %}" class="btn-secondary">❌ Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

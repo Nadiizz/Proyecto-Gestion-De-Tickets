@@ -1,0 +1,292 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Panel de Administración - Coyahue{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Header del admin */
+    .admin-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .admin-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    /* Grid de estadísticas */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        border-left: 4px solid;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+    }
+    
+    .stat-card.primary { border-color: #3498db; }
+    .stat-card.success { border-color: #2ecc71; }
+    .stat-card.warning { border-color: #f39c12; }
+    .stat-card.info { border-color: #9b59b6; }
+    
+    .stat-card h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.95rem;
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    
+    .stat-value {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    /* Acciones rápidas */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #ecf0f1;
+        border-radius: 12px;
+        text-decoration: none;
+        color: #2c3e50;
+        font-weight: 500;
+        transition: all 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .action-btn:hover {
+        border-color: #667eea;
+        color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+    }
+    
+    /* Secciones recientes */
+    .recent-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+    
+    .recent-section h2 {
+        margin: 0 0 1rem 0;
+        font-size: 1.3rem;
+        color: #2c3e50;
+    }
+    
+    .recent-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .recent-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #ecf0f1;
+        transition: background 0.2s;
+    }
+    
+    .recent-item:last-child {
+        border-bottom: none;
+    }
+    
+    .recent-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .user-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        font-size: 1.1rem;
+        border: 2px solid #667eea;
+        flex-shrink: 0;
+        object-fit: cover;
+    }
+
+    .user-avatar.initial {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+    }
+    
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    
+    .user-info strong {
+        color: #2c3e50;
+    }
+    
+    .user-info span {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    /* Badges */
+    .user-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-top: 0.3rem;
+    }
+    
+    .badge-admin { background: #e3f2fd; color: #1976d2; }
+    .badge-técnico { background: #fff3e0; color: #f57c00; }
+    .badge-usuario { background: #f3e5f5; color: #7b1fa2; }
+    
+    .invitation-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .badge-pendiente { background: #fff3cd; color: #856404; }
+    .badge-aceptada { background: #d4edda; color: #155724; }
+    .badge-expirada { background: #f8d7da; color: #721c24; }
+    .badge-cancelada { background: #e2e3e5; color: #383d41; }
+    
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #7f8c8d;
+    }
+    
+    .empty-state p {
+        margin: 0;
+        font-size: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1>🎛️ Panel de Administración</h1>
+    <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Gestión completa del sistema</p>
+</div>
+
+<!-- Estadísticas principales -->
+<div class="stats-grid">
+    <div class="stat-card primary">
+        <h3>👥 Usuarios Activos</h3>
+        <p class="stat-value">{{ total_usuarios }}</p>
+    </div>
+    
+    <div class="stat-card success">
+        <h3>🎭 Roles Activos</h3>
+        <p class="stat-value">{{ total_roles }}</p>
+    </div>
+    
+    <div class="stat-card info">
+        <h3>📋 Total Tickets</h3>
+        <p class="stat-value">{{ total_tickets }}</p>
+    </div>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="quick-actions">
+    <a href="{% url 'admin_usuarios' %}" class="action-btn">
+        👥 Gestionar Usuarios
+    </a>
+    <a href="{% url 'admin_roles' %}" class="action-btn">
+        🎭 Gestionar Roles
+    </a>
+    <a href="{% url 'admin_categorias' %}" class="action-btn">
+        📂 Gestionar Categorías
+    </a>
+    <a href="{% url 'admin_subcategorias' %}" class="action-btn">
+        📌 Gestionar Subcategorías
+    </a>
+    <a href="{% url 'admin_crear_usuario' %}" class="action-btn">
+        ➕ Crear Usuario
+    </a>
+</div>
+
+<!-- Usuarios recientes -->
+<div class="recent-section">
+    <h2>👥 Usuarios Recientes</h2>
+    {% if usuarios_recientes %}
+        <ul class="recent-list">
+            {% for usuario in usuarios_recientes %}
+            <li class="recent-item">
+                <div class="user-info">
+                    {% if usuario.perfilusuario.foto_perfil %}
+                        <img src="{{ usuario.perfilusuario.foto_perfil.url }}" alt="{{ usuario.username }}" class="user-avatar">
+                    {% else %}
+                        <div class="user-avatar initial">{{ usuario.first_name|first|upper|default:usuario.username|first|upper }}</div>
+                    {% endif %}
+                    <div class="user-details">
+                        <strong>{{ usuario.first_name|default:usuario.username }} {{ usuario.last_name }}</strong>
+                        <span>({{ usuario.email }})</span>
+                        {% if usuario.groups.all %}
+                            {% for grupo in usuario.groups.all %}
+                            <span class="user-badge badge-{{ grupo.name|lower }}">{{ grupo.name }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <a href="{% url 'admin_editar_usuario' usuario.id %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="empty-state">
+            <p>No hay usuarios registrados recientemente</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

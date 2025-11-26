@@ -1,12 +1,23 @@
-from django.db import models
+﻿from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from datetime import timedelta
 import os
 
 # Constantes para validación de archivos
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.xlsx', '.xls', '.zip']
+
+# Transiciones de estado permitidas en el flujo de trabajo
+TRANSICIONES_ESTADO_VALIDAS = {
+    'pendiente': ['en_progreso', 'asignado'],
+    'asignado': ['en_progreso', 'cerrado'],
+    'en_progreso': ['resuelto', 'pendiente', 'en_progreso'],
+    'resuelto': ['cerrado', 'pendiente'],  # Puede reabrirse
+    'cerrado': [],  # No se puede cambiar desde cerrado (solo admin puede reabrir)
+    'tiempo_excedido': ['pendiente', 'en_progreso'],  # Puede reabrirse
+}
 
 
 def validar_tamano_archivo(archivo):
@@ -22,6 +33,41 @@ def validar_extension_archivo(archivo):
         raise ValidationError(
             f'Extensión no permitida. Solo se permiten: {", ".join(ALLOWED_EXTENSIONS)}'
         )
+
+
+# Categorías y Subcategorías
+class Categoria(models.Model):
+    """Modelo para categorías generales de tickets (Finanzas, RRHH, etc.)"""
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True, null=True)
+    activa = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Categoría'
+        verbose_name_plural = 'Categorías'
+    
+    def __str__(self):
+        return self.nombre
+
+
+class Subcategoria(models.Model):
+    """Modelo para subcategorías específicas dentro de cada categoría"""
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='subcategorias')
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    activa = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['categoria', 'nombre']
+        verbose_name = 'Subcategoría'
+        verbose_name_plural = 'Subcategorías'
+        unique_together = ('categoria', 'nombre')
+    
+    def __str__(self):
+        return f"{self.categoria.nombre} - {self.nombre}"
 
 
 # Create your models here.
@@ -67,8 +113,10 @@ class Ticket(models.Model):
     prioridad = models.CharField(max_length=10, choices=PRIORIDADES, default='media')
     # Tipo de ticket para categorización
     tipo = models.CharField(max_length=20, choices=TIPOS, default='incidencia')
-    # Área o departamento afectado por el problema
-    area_afectada = models.CharField(max_length=100)
+    # Categoría del ticket (Finanzas, RRHH, etc.)
+    categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
+    # Subcategoría del ticket (más específica)
+    subcategoria = models.ForeignKey(Subcategoria, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
     # Usuario que creó el ticket (relación muchos a uno)
     creador = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets_creados')
     # Técnico asignado al ticket (puede ser nulo si no está asignado)
@@ -121,8 +169,13 @@ class Ticket(models.Model):
             return timezone.now() > self.tiempo_limite_resolucion
         return False
     
-    def calcular_tiempo_limite_sla(self):
-        """Calcula el tiempo límite SLA basado en la prioridad"""
+    def calcular_tiempo_limite_sla(self, horas_personalizadas=None):
+        """Calcula el tiempo límite SLA basado en la prioridad o valor personalizado"""
+        if horas_personalizadas:
+            # SLA personalizado: usar las horas especificadas
+            return self.fecha_creacion + timedelta(hours=int(horas_personalizadas))
+        
+        # SLA por defecto: basado en la prioridad
         horas_por_prioridad = {
             'critica': 4,   # 4 horas
             'alta': 8,      # 8 horas
@@ -130,8 +183,27 @@ class Ticket(models.Model):
             'baja': 48,     # 48 horas
         }
         horas = horas_por_prioridad.get(self.prioridad, 24)
-        from datetime import timedelta
         return self.fecha_creacion + timedelta(hours=horas)
+    
+    def puede_cambiar_estado_a(self, nuevo_estado):
+        """Valida si la transición de estado es permitida"""
+        estado_actual = self.estado
+        
+        # Casos especiales: transiciones permitidas siempre por admin
+        if estado_actual == nuevo_estado:
+            return True  # Cambio a mismo estado (no-op)
+        
+        # Verificar si la transición está permitida
+        transiciones_permitidas = TRANSICIONES_ESTADO_VALIDAS.get(estado_actual, [])
+        
+        if nuevo_estado not in transiciones_permitidas:
+            return False
+        
+        return True
+    
+    def obtener_transiciones_permitidas(self):
+        """Retorna la lista de transiciones permitidas desde el estado actual"""
+        return TRANSICIONES_ESTADO_VALIDAS.get(self.estado, [])
 
 # Comentarios
 class Comentario(models.Model):
@@ -231,3 +303,129 @@ class ArchivoComentario(models.Model):
         """Verifica si el archivo es una imagen"""
         extensiones_imagen = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
         return self.extension() in extensiones_imagen
+
+
+
+# ============================================
+# MODELOS PARA GESTIÓN AVANZADA DE USUARIOS
+# ============================================
+
+class RolPersonalizado(models.Model):
+    """Roles personalizados con permisos granulares"""
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True)
+    color = models.CharField(max_length=7, default='#3498db')
+    
+    # Permisos específicos
+    puede_ver_metricas = models.BooleanField(default=False)
+    puede_ver_todos_tickets = models.BooleanField(default=False)
+    puede_asignar_tickets = models.BooleanField(default=False)
+    puede_cambiar_estado = models.BooleanField(default=False)
+    puede_gestionar_usuarios = models.BooleanField(default=False)
+    puede_crear_roles = models.BooleanField(default=False)
+    
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='roles_creados')
+    
+    class Meta:
+        verbose_name = 'Rol Personalizado'
+        verbose_name_plural = 'Roles Personalizados'
+        ordering = ['nombre']
+    
+    def __str__(self):
+        return self.nombre
+
+
+class PerfilUsuario(models.Model):
+    """Perfil extendido de usuario con información adicional"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfilusuario')
+    telefono = models.CharField(max_length=20, blank=True)
+    departamento = models.CharField(max_length=100, blank=True)
+    cargo = models.CharField(max_length=100, blank=True)
+    ubicacion = models.CharField(max_length=200, blank=True)
+    foto_perfil = models.ImageField(upload_to='fotos_perfil/', null=True, blank=True)
+    
+    rol_personalizado = models.ForeignKey(
+        RolPersonalizado, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='usuarios'
+    )
+    
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    creado_por = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='perfiles_creados'
+    )
+    
+    # Preferencias de notificaciones
+    notificaciones_email = models.BooleanField(default=True)
+    notificaciones_whatsapp = models.BooleanField(default=False)
+    numero_whatsapp = models.CharField(max_length=20, blank=True, help_text="Formato: +57301234567")
+    
+    class Meta:
+        verbose_name = 'Perfil de Usuario'
+        verbose_name_plural = 'Perfiles de Usuarios'
+    
+    def __str__(self):
+        return f"Perfil de {self.user.username}"
+
+
+# ==================== SISTEMA DE NOTIFICACIONES ====================
+
+class Notificacion(models.Model):
+    """Modelo para notificaciones a usuarios"""
+    TIPOS_NOTIFICACION = [
+        ('ticket_creado', 'Ticket Creado'),
+        ('ticket_asignado', 'Ticket Asignado'),
+        ('ticket_comentario', 'Nuevo Comentario'),
+        ('estado_cambio', 'Cambio de Estado'),
+        ('ticket_resuelto', 'Ticket Resuelto'),
+        ('ticket_cerrado', 'Ticket Cerrado'),
+    ]
+    
+    PRIORIDADES = [
+        ('baja', 'Baja'),
+        ('media', 'Media'),
+        ('alta', 'Alta'),
+        ('critica', 'Crítica'),
+    ]
+    
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notificaciones')
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones')
+    
+    tipo = models.CharField(max_length=50, choices=TIPOS_NOTIFICACION)
+    prioridad = models.CharField(max_length=20, choices=PRIORIDADES, default='media')
+    
+    titulo = models.CharField(max_length=200)
+    mensaje = models.TextField()
+    
+    # Estados de envío
+    email_enviado = models.BooleanField(default=False)
+    email_fecha = models.DateTimeField(null=True, blank=True)
+    
+    whatsapp_enviado = models.BooleanField(default=False)
+    whatsapp_fecha = models.DateTimeField(null=True, blank=True)
+    
+    # Estado de visualización en web
+    leida = models.BooleanField(default=False)
+    fecha_leida = models.DateTimeField(null=True, blank=True)
+    
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    enlace = models.CharField(max_length=500, blank=True)
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Notificación'
+        verbose_name_plural = 'Notificaciones'
+        indexes = [
+            models.Index(fields=['usuario', '-fecha_creacion']),
+            models.Index(fields=['usuario', 'leida']),
+        ]
+    
+    def __str__(self):
+        return f"{self.titulo} → {self.usuario.username}"

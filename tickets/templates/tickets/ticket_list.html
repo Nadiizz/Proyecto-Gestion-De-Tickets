@@ -108,7 +108,16 @@
             <tr>
                 <td>#{{ ticket.id }}</td>
                 <td><strong>{{ ticket.titulo }}</strong></td>
-                <td>{{ ticket.creador.username }}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        {% if ticket.creador.perfilusuario.foto_perfil %}
+                            <img src="{{ ticket.creador.perfilusuario.foto_perfil.url }}" alt="{{ ticket.creador.username }}" style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                        {% else %}
+                            <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.8rem; border: 2px solid #667eea;">{{ ticket.creador.first_name|first|upper|default:ticket.creador.username|first|upper }}</div>
+                        {% endif %}
+                        <span>{{ ticket.creador.first_name|default:ticket.creador.username }} {{ ticket.creador.last_name }}</span>
+                    </div>
+                </td>
                 <td>{{ ticket.area_afectada }}</td>
                 <td>
                     <span class="priority-badge priority-{{ ticket.prioridad|lower }}">
@@ -129,12 +138,14 @@
                 <td>
                     <div class="action-buttons">
                         <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-view">👁️ Ver</a>
-                        {% if user.groups.all.0.name == 'Técnico' and ticket.asignado_a == user %}
+                        {% with first_group=user.groups.all|first %}
+                        {% if first_group.name == 'Técnico' and ticket.asignado_a == user %}
                         <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-edit">🔄 Cambiar</a>
                         {% endif %}
-                        {% if user.groups.all.0.name == 'Administrador' and not ticket.asignado_a %}
+                        {% if first_group.name == 'Administrador' and not ticket.asignado_a %}
                         <a href="{% url 'asignar_ticket' ticket.id %}" class="btn btn-assign">👤 Asignar</a>
                         {% endif %}
+                        {% endwith %}
                     </div>
                 </td>
             </tr>

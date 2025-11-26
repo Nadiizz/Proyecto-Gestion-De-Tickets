@@ -56,14 +56,25 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.area_afectada.id_for_label }}" class="form-label">
-                    🏢 Área Afectada <span class="required">*</span>
+                <label for="{{ form.categoria.id_for_label }}" class="form-label">
+                    🏢 Categoría <span class="required">*</span>
                 </label>
-                {{ form.area_afectada }}
-                {% if form.area_afectada.errors %}
-                    <div class="error-message">{{ form.area_afectada.errors }}</div>
+                {{ form.categoria }}
+                {% if form.categoria.errors %}
+                    <div class="error-message">{{ form.categoria.errors }}</div>
                 {% endif %}
-                <div class="help-text">Especifica el área relacionada con tu problema</div>
+                <div class="help-text">Selecciona la categoría general de tu solicitud</div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.subcategoria.id_for_label }}" class="form-label">
+                    📌 Subcategoría <span class="required">*</span>
+                </label>
+                {{ form.subcategoria }}
+                {% if form.subcategoria.errors %}
+                    <div class="error-message">{{ form.subcategoria.errors }}</div>
+                {% endif %}
+                <div class="help-text">Selecciona la subcategoría específica de tu problema</div>
             </div>
 
             <div class="form-group full-width">
@@ -111,5 +122,69 @@
 <script>
     // Limpiar marca de dashboard al visitar crear ticket
     sessionStorage.removeItem('inDashboard');
+    
+    // Implementar selects dependientes para categoría y subcategoría
+    document.addEventListener('DOMContentLoaded', function() {
+        const categoriaSelect = document.getElementById('id_categoria');
+        const subcategoriaSelect = document.getElementById('id_subcategoria');
+        const subcategoriaGroup = subcategoriaSelect.closest('.form-group');
+        
+        // Función para actualizar subcategorías
+        function actualizarSubcategorias() {
+            const categoriaId = categoriaSelect.value;
+            
+            // Si no hay categoría seleccionada, limpiar subcategorías
+            if (!categoriaId) {
+                subcategoriaSelect.innerHTML = '<option value="">Selecciona una categoría primero</option>';
+                subcategoriaSelect.disabled = true;
+                return;
+            }
+            
+            // Mostrar indicador de carga
+            subcategoriaSelect.innerHTML = '<option value="">Cargando subcategorías...</option>';
+            subcategoriaSelect.disabled = true;
+            
+            // Obtener subcategorías del servidor
+            fetch(`/api/subcategorias/${categoriaId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error al cargar subcategorías');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Limpiar opciones anteriores
+                    subcategoriaSelect.innerHTML = '<option value="">Selecciona una subcategoría</option>';
+                    
+                    // Agregar nuevas opciones
+                    if (data.length === 0) {
+                        subcategoriaSelect.innerHTML = '<option value="">No hay subcategorías disponibles</option>';
+                    } else {
+                        data.forEach(subcategoria => {
+                            const option = document.createElement('option');
+                            option.value = subcategoria.id;
+                            option.textContent = subcategoria.nombre;
+                            subcategoriaSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Habilitar select
+                    subcategoriaSelect.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    subcategoriaSelect.innerHTML = '<option value="">Error al cargar subcategorías</option>';
+                    subcategoriaSelect.disabled = false;
+                });
+        }
+        
+        // Event listener para cambios en categoría
+        categoriaSelect.addEventListener('change', actualizarSubcategorias);
+        
+        // Inicializar si hay una categoría preseleccionada (modo edición)
+        if (categoriaSelect.value) {
+            actualizarSubcategorias();
+        }
+    });
 </script>
 {% endblock %}

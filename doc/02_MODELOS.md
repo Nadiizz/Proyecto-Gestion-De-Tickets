@@ -491,4 +491,127 @@ ticket = Ticket.objects.select_related(
 
 ---
 
-**Siguiente**: [Vistas y Controladores →](03_VISTAS.md)
+## 📢 Modelo Notificacion (✨ NEW - Migración 0008)
+
+### Descripción
+Modelo para almacenar todas las notificaciones del sistema. Soporta múltiples canales de envío (Email, WhatsApp, Web).
+
+### Campos
+```python
+class Notificacion(models.Model):
+    # Relaciones
+    usuario = ForeignKey(User, on_delete=CASCADE, related_name='notificaciones')
+    ticket = ForeignKey(Ticket, on_delete=CASCADE, null=True, blank=True, related_name='notificaciones')
+    
+    # Tipos y Prioridades
+    TIPOS = [
+        ('ticket_creado', 'Ticket Creado'),
+        ('ticket_asignado', 'Ticket Asignado'),
+        ('ticket_comentario', 'Nuevo Comentario'),
+        ('estado_cambio', 'Cambio de Estado'),
+        ('ticket_resuelto', 'Ticket Resuelto'),
+        ('ticket_cerrado', 'Ticket Cerrado'),
+    ]
+    
+    PRIORIDADES = [
+        ('baja', 'Baja'),
+        ('media', 'Media'),
+        ('alta', 'Alta'),
+        ('critica', 'Crítica'),
+    ]
+    
+    tipo = CharField(max_length=50, choices=TIPOS)
+    prioridad = CharField(max_length=20, choices=PRIORIDADES, default='media')
+    
+    # Contenido
+    titulo = CharField(max_length=200)
+    mensaje = TextField()
+    enlace = CharField(max_length=500, blank=True)
+    
+    # Estados de Envío - Email
+    email_enviado = BooleanField(default=False)
+    email_fecha = DateTimeField(null=True, blank=True)
+    
+    # Estados de Envío - WhatsApp
+    whatsapp_enviado = BooleanField(default=False)
+    whatsapp_fecha = DateTimeField(null=True, blank=True)
+    
+    # Estado Web
+    leida = BooleanField(default=False)
+    fecha_leida = DateTimeField(null=True, blank=True)
+    
+    # Auditoría
+    fecha_creacion = DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        indexes = [
+            Index(fields=['usuario', '-fecha_creacion']),
+            Index(fields=['usuario', 'leida']),
+        ]
+```
+
+### Métodos Útiles
+```python
+# Obtener notificaciones no leídas
+notificaciones = Notificacion.objects.filter(
+    usuario=request.user,
+    leida=False
+).order_by('-fecha_creacion')
+
+# Marcar como leída
+notificacion.leida = True
+notificacion.fecha_leida = timezone.now()
+notificacion.save()
+
+# Estadísticas
+stats = {
+    'total': Notificacion.objects.filter(usuario=user).count(),
+    'no_leidas': Notificacion.objects.filter(usuario=user, leida=False).count(),
+    'emails_enviados': Notificacion.objects.filter(usuario=user, email_enviado=True).count(),
+}
+```
+
+### Consultas Comunes
+```python
+# Todas las notificaciones de un usuario ordenadas
+notificaciones = Notificacion.objects.filter(
+    usuario=request.user
+).select_related('ticket__creador', 'usuario').order_by('-fecha_creacion')
+
+# Notificaciones sin leer
+no_leidas = Notificacion.objects.filter(
+    usuario=request.user,
+    leida=False
+)[:5]  # Top 5
+
+# Por tipo de notificación
+creadas = Notificacion.objects.filter(
+    usuario=request.user,
+    tipo='ticket_creado'
+)
+
+# Notificaciones críticas
+criticas = Notificacion.objects.filter(
+    usuario=request.user,
+    prioridad='critica'
+)
+```
+
+### Integración con PerfilUsuario
+```python
+class PerfilUsuario(models.Model):
+    user = OneToOneField(User, on_delete=CASCADE, related_name='perfilusuario')
+    
+    # Nuevos campos para notificaciones (Migración 0008)
+    notificaciones_email = BooleanField(default=True)
+    notificaciones_whatsapp = BooleanField(default=False)
+    numero_whatsapp = CharField(max_length=20, blank=True, help_text="Formato: +57301234567")
+    
+    # ... otros campos
+```
+
+---
+
+**Siguiente**: [Vistas y Controladores →](03_VISTAS.md)  
+**Referencia**: [Sistema de Notificaciones →](SISTEMA_NOTIFICACIONES.md)

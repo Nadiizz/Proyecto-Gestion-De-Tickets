@@ -593,6 +593,200 @@ tickets_usuario = Ticket.objects.filter(
 
 ---
 
+## 📢 Vistas API de Notificaciones (✨ NEW)
+
+### notificaciones_api()
+```python
+@login_required
+def notificaciones_api(request):
+    """
+    Retorna todas las notificaciones del usuario en formato JSON.
+    Soporta filtros por estado de lectura.
+    """
+```
+
+**Método**: GET  
+**URL**: `/api/notificaciones/`  
+**Respuesta**: JSON
+
+**Parámetros**:
+- `leidas` (boolean, opcional): Filtrar por estado
+- `limite` (integer, opcional, default=20): Límite de resultados
+
+**Query Optimizada**:
+```python
+notificaciones = Notificacion.objects.filter(
+    usuario=request.user
+).select_related('ticket').order_by('-fecha_creacion')
+
+if 'leidas' in request.GET:
+    leidas = request.GET.get('leidas').lower() == 'true'
+    notificaciones = notificaciones.filter(leida=leidas)
+
+# Paginación
+limite = int(request.GET.get('limite', 20))
+return JsonResponse({
+    'total': notificaciones.count(),
+    'notificaciones': list(notificaciones[:limite].values())
+})
+```
+
+**Ejemplo de Respuesta**:
+```json
+{
+  "total": 5,
+  "notificaciones": [
+    {
+      "id": 42,
+      "titulo": "Ticket Asignado",
+      "mensaje": "Se te asignó ticket #1005",
+      "tipo": "ticket_asignado",
+      "prioridad": "media",
+      "leida": false,
+      "fecha_creacion": "2025-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### notificaciones_nuevas_api()
+```python
+@login_required
+def notificaciones_nuevas_api(request):
+    """
+    Retorna solo las notificaciones no leídas del usuario.
+    Ideal para actualizar badge de contador.
+    """
+```
+
+**Método**: GET  
+**URL**: `/api/notificaciones/nuevas/`  
+**Respuesta**: JSON
+
+**Lógica**:
+```python
+no_leidas = Notificacion.objects.filter(
+    usuario=request.user,
+    leida=False
+).order_by('-fecha_creacion')
+
+return JsonResponse({
+    'total': Notificacion.objects.filter(usuario=request.user).count(),
+    'sin_leer': no_leidas.count(),
+    'notificaciones': list(no_leidas.values())
+})
+```
+
+---
+
+### marcar_notificacion_leida_api()
+```python
+@login_required
+def marcar_notificacion_leida_api(request, notificacion_id):
+    """
+    Marca una notificación específica como leída.
+    """
+```
+
+**Método**: POST  
+**URL**: `/api/notificaciones/<id>/marcar-leida/`  
+**Respuesta**: JSON
+
+**Validación y Lógica**:
+```python
+try:
+    notificacion = Notificacion.objects.get(
+        id=notificacion_id,
+        usuario=request.user
+    )
+    notificacion.leida = True
+    notificacion.fecha_leida = timezone.now()
+    notificacion.save()
+    
+    return JsonResponse({
+        'success': True,
+        'mensaje': 'Notificación marcada como leída',
+        'notificacion': {
+            'id': notificacion.id,
+            'leida': True
+        }
+    })
+except Notificacion.DoesNotExist:
+    return JsonResponse(
+        {'error': 'Notificación no encontrada'},
+        status=404
+    )
+```
+
+---
+
+### marcar_todas_notificaciones_leidas_api()
+```python
+@login_required
+def marcar_todas_notificaciones_leidas_api(request):
+    """
+    Marca todas las notificaciones del usuario como leídas.
+    """
+```
+
+**Método**: POST  
+**URL**: `/api/notificaciones/marcar-todas-leidas/`  
+**Respuesta**: JSON
+
+**Lógica**:
+```python
+no_leidas = Notificacion.objects.filter(
+    usuario=request.user,
+    leida=False
+)
+
+actualizadas = 0
+for notif in no_leidas:
+    notif.leida = True
+    notif.fecha_leida = timezone.now()
+    notif.save()
+    actualizadas += 1
+
+return JsonResponse({
+    'success': True,
+    'mensaje': 'Todas las notificaciones han sido marcadas como leídas',
+    'actualizadas': actualizadas,
+    'timestamp': timezone.now().isoformat()
+})
+```
+
+---
+
+### lista_notificaciones()
+```python
+@login_required
+def lista_notificaciones(request):
+    """
+    Vista HTML que renderiza la página de notificaciones.
+    """
+```
+
+**Método**: GET  
+**URL**: `/notificaciones/`  
+**Template**: `tickets/lista_notificaciones.html`
+
+**Contexto**:
+```python
+notificaciones = Notificacion.objects.filter(
+    usuario=request.user
+).select_related('ticket')
+
+context = {
+    'notificaciones': notificaciones,
+    'sin_leer': notificaciones.filter(leida=False).count(),
+}
+return render(request, 'tickets/lista_notificaciones.html', context)
+```
+
+---
+
 ## 🔧 Funciones Auxiliares
 
 ### es_admin()

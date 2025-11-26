@@ -111,7 +111,7 @@
                                     <span class="star-mini {% if forloop.counter <= ticket.calificacion_satisfaccion %}filled{% endif %}">★</span>
                                 {% endfor %}
                             </div>
-                        {% elif ticket.estado in 'resuelto,cerrado' %}
+                        {% elif ticket.estado in 'resuelto|cerrado' %}
                             {# Botón para calificar si está cerrado y no calificado #}
                             <a href="{% url 'ticket_detalle' ticket.id %}#rating" class="btn btn-warning">⭐ Calificar</a>
                         {% endif %}

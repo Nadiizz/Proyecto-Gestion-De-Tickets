@@ -2,6 +2,8 @@
 
 Bienvenido a la documentación completa del Sistema de Gestión de Tickets desarrollado para Grupo Coyahue.
 
+**⭐ INICIO AQUÍ:** [INDICE_MAESTRO.md](INDICE_MAESTRO.md) - Guía de navegación completa con mapa de contenidos
+
 ## 📖 Índice de Documentación
 
 ### 1. [Arquitectura del Sistema](01_ARQUITECTURA.md)
@@ -56,6 +58,12 @@ Explicación detallada de todas las vistas (13 vistas principales), lógica de n
   * Gráficos y visualizaciones
 - **Calificaciones**: calificar_ticket()
 - **Vista Personal**: mis_tickets()
+- **✨ NEW - API de Notificaciones**: 4 endpoints JSON
+  * notificaciones_api() - Obtener todas las notificaciones
+  * notificaciones_nuevas_api() - Solo sin leer
+  * marcar_notificacion_leida_api() - Marcar individual
+  * marcar_todas_notificaciones_leidas_api() - Marcar en masa
+  * lista_notificaciones() - Vista HTML de notificaciones
 - Funciones auxiliares de permisos
 
 ---
@@ -79,6 +87,11 @@ Documentación de la estructura de templates, componentes HTML, CSS y JavaScript
   * Gráficos de barras dinámicos
   * Tabla de eficiencia de técnicos
   * Selector de período
+- **✨ NEW - Sistema de Notificaciones**:
+  * lista_notificaciones.html - Página central de notificaciones
+  * Campana (Bell Icon) con contador dinámico
+  * Componente JavaScript notificaciones-campana.js
+  * Actualizaciones en tiempo real cada 30 segundos
 - **Sistema de Calificaciones**: Estrellas interactivas
 - JavaScript personalizado
 
@@ -125,6 +138,13 @@ Referencia técnica de comandos, queries y APIs del sistema.
   * Agrupación y relaciones
   * Manejo de fechas
   * Actualización y eliminación en masa
+- **✨ NEW - API REST de Notificaciones**:
+  * GET /api/notificaciones/ - Todas las notificaciones
+  * GET /api/notificaciones/nuevas/ - Solo sin leer
+  * POST /api/notificaciones/<id>/marcar-leida/ - Marcar individual
+  * POST /api/notificaciones/marcar-todas-leidas/ - Marcar en masa
+  * Ejemplos con cURL y JavaScript Fetch
+  * Códigos HTTP documentados
 - **URLs del Sistema**: Mapeo completo
 - **Permisos y Decoradores**: Control de acceso
 - **Exportación de Datos**: CSV, Excel, PDF
@@ -207,7 +227,7 @@ Documentación específica del sistema de métricas, analytics y SLA.
 
 ## 📝 Notas de Versión
 
-**Versión Actual**: 1.0.0 (Noviembre 2025)
+**Versión Actual**: 1.1.0 (Enero 2025)
 
 ### Características Implementadas
 - ✅ Sistema completo de gestión de tickets
@@ -222,13 +242,23 @@ Documentación específica del sistema de métricas, analytics y SLA.
 - ✅ Paginación optimizada
 - ✅ Diseño responsive
 - ✅ Animaciones CSS3
+- **✨ NEW (v1.1.0) - Sistema de Notificaciones**:
+  * ✅ Modelo Notificacion con 16 campos
+  * ✅ API REST con 4 endpoints JSON
+  * ✅ Múltiples canales: Email (SMTP), WhatsApp (Twilio), Web
+  * ✅ Notificaciones en tiempo real (polling 30s)
+  * ✅ Campana visual con contador de nuevas
+  * ✅ Página dedicada para gestionar notificaciones
+  * ✅ Sistema de preferencias por usuario
+  * ✅ Logging y auditoría completa
 
 ### Próximas Mejoras Planificadas
-- 🔄 API REST (Django REST Framework)
-- 🔄 Notificaciones por email
+- 🔄 WebSockets para notificaciones en tiempo real
+- 🔄 Filtros avanzados de notificaciones
+- 🔄 Historial archivado
+- 🔄 Notificaciones por SMS (Twilio)
 - 🔄 Sistema de cache (Redis)
 - 🔄 Procesamiento asíncrono (Celery)
-- 🔄 Exportación avanzada de reportes
 - 🔄 Dashboard en tiempo real
 - 🔄 Integración con LDAP
 

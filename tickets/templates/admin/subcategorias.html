@@ -1,0 +1,342 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Gestión de Subcategorías - Panel de Administración{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .admin-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    .header-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .filter-section {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .filter-section label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+    }
+
+    .filter-section select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.95rem;
+    }
+
+    .btn-crear {
+        background: white;
+        color: #667eea;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        display: inline-block;
+    }
+
+    .btn-crear:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+    }
+
+    .stat-card h3 {
+        margin: 0 0 0.5rem 0;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    .stat-value {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: #f8f9fa;
+        border-bottom: 2px solid #ecf0f1;
+    }
+
+    th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.95rem;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid #ecf0f1;
+        color: #555;
+    }
+
+    tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .status-activa {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-inactiva {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+        display: inline-block;
+    }
+
+    .btn-editar {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-editar:hover {
+        background: #2980b9;
+    }
+
+    .btn-eliminar {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .btn-eliminar:hover {
+        background: #c0392b;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+
+    .empty-state p {
+        font-size: 1.1rem;
+        margin: 1rem 0;
+    }
+
+    .breadcrumb {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        color: #7f8c8d;
+    }
+
+    .breadcrumb a {
+        color: #3498db;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+        color: #2980b9;
+    }
+
+    .description-cell {
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .categoria-badge {
+        display: inline-block;
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{% url 'admin_panel' %}">📊 Panel Admin</a>
+    <span>/</span>
+    <span>📌 Subcategorías</span>
+</div>
+
+<!-- Header -->
+<div class="admin-header">
+    <div class="header-actions">
+        <div>
+            <h1>📌 Gestión de Subcategorías</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Administra las subcategorías disponibles en el sistema</p>
+        </div>
+        <a href="{% url 'admin_crear_subcategoria' %}" class="btn-crear">
+            ➕ Nueva Subcategoría
+        </a>
+    </div>
+</div>
+
+<!-- Filtro por categoría -->
+<div class="filter-section">
+    <label for="categoria-filter">Filtrar por categoría:</label>
+    <select id="categoria-filter" onchange="window.location.href=this.value">
+        <option value="{% url 'admin_subcategorias' %}">Todas las categorías</option>
+        {% for cat in categorias %}
+            <option value="{% url 'admin_subcategorias' %}?categoria={{ cat.id }}"
+                    {% if categoria_seleccionada.id == cat.id %}selected{% endif %}>
+                {{ cat.nombre }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- Estadísticas -->
+<div class="stats-row">
+    <div class="stat-card">
+        <h3>Total de Subcategorías</h3>
+        <p class="stat-value">{{ total_subcategorias }}</p>
+    </div>
+    {% if categoria_seleccionada %}
+    <div class="stat-card">
+        <h3>Categoría Seleccionada</h3>
+        <p class="stat-value">{{ categoria_seleccionada.nombre }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tabla de subcategorías -->
+{% if subcategorias %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 20%;">Categoría</th>
+                <th style="width: 25%;">Nombre</th>
+                <th style="width: 35%;">Descripción</th>
+                <th style="width: 10%;">Estado</th>
+                <th style="width: 10%;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subcategoria in subcategorias %}
+            <tr>
+                <td>
+                    <span class="categoria-badge">{{ subcategoria.categoria.nombre }}</span>
+                </td>
+                <td><strong>{{ subcategoria.nombre }}</strong></td>
+                <td class="description-cell">{{ subcategoria.descripcion|default:"Sin descripción" }}</td>
+                <td>
+                    {% if subcategoria.activa %}
+                        <span class="status-badge status-activa">✓ Activa</span>
+                    {% else %}
+                        <span class="status-badge status-inactiva">✗ Inactiva</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'admin_editar_subcategoria' subcategoria.id %}" class="btn-sm btn-editar">
+                            ✏️ Editar
+                        </a>
+                        <a href="{% url 'admin_eliminar_subcategoria' subcategoria.id %}" class="btn-sm btn-eliminar" onclick="return confirm('¿Estás seguro de que deseas eliminar esta subcategoría?');">
+                            🗑️ Eliminar
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="table-container">
+    <div class="empty-state">
+        <p style="font-size: 2rem;">📭</p>
+        <p>No hay subcategorías creadas {% if categoria_seleccionada %}en "{{ categoria_seleccionada.nombre }}"{% endif %}</p>
+        <a href="{% url 'admin_crear_subcategoria' %}" class="btn-crear" style="margin-top: 1rem;">
+            ➕ Crear Primera Subcategoría
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

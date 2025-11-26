@@ -546,6 +546,229 @@ def puede_editar_ticket(user, ticket):
 
 ---
 
+## 📢 API REST de Notificaciones (✨ NEW)
+
+### Endpoints Disponibles
+
+#### 1. Obtener Todas las Notificaciones
+**Endpoint**: `GET /api/notificaciones/`
+
+**Autenticación**: Requerida (Login)
+
+**Parámetros Query** (Opcionales):
+```
+?leidas=true      - Mostrar solo leídas
+?leidas=false     - Mostrar solo no leídas
+?limite=10        - Limitar resultados (default: 20)
+?offset=0         - Paginación
+```
+
+**cURL**:
+```bash
+curl -X GET "http://localhost:8000/api/notificaciones/" \
+  -H "Cookie: sessionid=abc123..."
+```
+
+**Respuesta Exitosa (200)**:
+```json
+{
+  "total": 15,
+  "notificaciones": [
+    {
+      "id": 42,
+      "titulo": "Ticket Asignado",
+      "mensaje": "Se te ha asignado el ticket #1005",
+      "tipo": "ticket_asignado",
+      "prioridad": "media",
+      "leida": false,
+      "fecha_creacion": "2025-01-15T10:30:00Z",
+      "ticket": {
+        "id": 1005,
+        "titulo": "Problema con impresora",
+        "enlace": "/tickets/1005/"
+      }
+    }
+  ]
+}
+```
+
+---
+
+#### 2. Obtener Notificaciones No Leídas
+**Endpoint**: `GET /api/notificaciones/nuevas/`
+
+**Autenticación**: Requerida (Login)
+
+**Descripción**: Retorna solo las notificaciones no leídas del usuario actual
+
+**cURL**:
+```bash
+curl -X GET "http://localhost:8000/api/notificaciones/nuevas/" \
+  -H "Cookie: sessionid=abc123..."
+```
+
+**Respuesta Exitosa (200)**:
+```json
+{
+  "total": 3,
+  "sin_leer": 3,
+  "notificaciones": [
+    {
+      "id": 42,
+      "titulo": "Ticket Asignado",
+      "tipo": "ticket_asignado",
+      "prioridad": "alta",
+      "leida": false,
+      "fecha_creacion": "2025-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### 3. Marcar Notificación como Leída
+**Endpoint**: `POST /api/notificaciones/<id>/marcar-leida/`
+
+**Autenticación**: Requerida (Login)
+
+**Método**: POST
+
+**Body**: Vacío
+
+**cURL**:
+```bash
+curl -X POST "http://localhost:8000/api/notificaciones/42/marcar-leida/" \
+  -H "Cookie: sessionid=abc123..."
+```
+
+**Respuesta Exitosa (200)**:
+```json
+{
+  "success": true,
+  "mensaje": "Notificación marcada como leída",
+  "notificacion": {
+    "id": 42,
+    "leida": true,
+    "fecha_leida": "2025-01-15T10:35:00Z"
+  }
+}
+```
+
+**Errores Posibles**:
+- **404 Not Found**: Notificación no existe
+- **403 Forbidden**: No tienes permisos para esta notificación
+
+---
+
+#### 4. Marcar Todas las Notificaciones como Leídas
+**Endpoint**: `POST /api/notificaciones/marcar-todas-leidas/`
+
+**Autenticación**: Requerida (Login)
+
+**Descripción**: Marca todas las notificaciones del usuario actual como leídas
+
+**Body**: Vacío
+
+**cURL**:
+```bash
+curl -X POST "http://localhost:8000/api/notificaciones/marcar-todas-leidas/" \
+  -H "Cookie: sessionid=abc123..."
+```
+
+**Respuesta Exitosa (200)**:
+```json
+{
+  "success": true,
+  "mensaje": "Todas las notificaciones han sido marcadas como leídas",
+  "actualizadas": 15,
+  "timestamp": "2025-01-15T10:35:00Z"
+}
+```
+
+---
+
+### Códigos de Estado HTTP
+
+| Código | Significado | Descripción |
+|--------|------------|-------------|
+| 200 | OK | Solicitud exitosa |
+| 201 | Created | Recurso creado |
+| 400 | Bad Request | Datos inválidos |
+| 401 | Unauthorized | No autenticado |
+| 403 | Forbidden | No autorizado |
+| 404 | Not Found | Recurso no encontrado |
+| 500 | Server Error | Error interno |
+
+---
+
+### Ejemplo: JavaScript Fetch
+
+```javascript
+// Obtener notificaciones nuevas
+async function obtenerNotificacionesNuevas() {
+  try {
+    const response = await fetch('/api/notificaciones/nuevas/');
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log(`Tienes ${data.sin_leer} notificaciones sin leer`);
+      data.notificaciones.forEach(notif => {
+        console.log(`- ${notif.titulo}`);
+      });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Marcar como leída
+async function marcarComoLeida(notificacionId) {
+  try {
+    const response = await fetch(
+      `/api/notificaciones/${notificacionId}/marcar-leida/`,
+      { method: 'POST' }
+    );
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log('Notificación marcada como leída');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Marcar todas como leídas
+async function marcarTodasLeidas() {
+  try {
+    const response = await fetch(
+      '/api/notificaciones/marcar-todas-leidas/',
+      { method: 'POST' }
+    );
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log(`${data.actualizadas} notificaciones marcadas como leídas`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+```
+
+---
+
+### Notas Importantes
+
+- ✅ Todos los endpoints requieren autenticación
+- ✅ Solo puedes ver/editar tus propias notificaciones
+- ✅ Las notificaciones se crean automáticamente en eventos del sistema
+- ✅ Los datos se sincronizan en tiempo real
+- ✅ Ver [Sistema de Notificaciones](SISTEMA_NOTIFICACIONES.md) para más detalles
+
+---
+
 ## 📤 Exportación de Datos
 
 ### Exportar a CSV

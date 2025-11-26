@@ -36,9 +36,11 @@
             </div>
             <div class="action-buttons">
                 <a href="{% url 'ticket_list' %}" class="btn btn-secondary">← Volver al Dashboard</a>
-                {% if user.groups.all.0.name == 'Técnico' and ticket.asignado_a == user %}
+                {% with first_group=user.groups.all|first %}
+                {% if first_group.name == 'Técnico' and ticket.asignado_a == user %}
                 <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-warning">🔄 Cambiar Estado</a>
                 {% endif %}
+                {% endwith %}
             </div>
         </div>
 
@@ -46,13 +48,27 @@
         <div class="ticket-info-grid">
             <div class="info-card">
                 <h3>👤 Creado por</h3>
-                <p>{{ ticket.creador.username }}</p>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    {% if ticket.creador.perfilusuario.foto_perfil %}
+                        <img src="{{ ticket.creador.perfilusuario.foto_perfil.url }}" alt="{{ ticket.creador.username }}" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                    {% else %}
+                        <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; border: 2px solid #667eea;">{{ ticket.creador.first_name|first|upper|default:ticket.creador.username|first|upper }}</div>
+                    {% endif %}
+                    <p style="margin: 0;">{{ ticket.creador.first_name|default:ticket.creador.username }} {{ ticket.creador.last_name }}</p>
+                </div>
             </div>
             <div class="info-card">
                 <h3>👨‍💻 Asignado a</h3>
                 <p>
                     {% if ticket.asignado_a %}
-                        {{ ticket.asignado_a.username }}
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            {% if ticket.asignado_a.perfilusuario.foto_perfil %}
+                                <img src="{{ ticket.asignado_a.perfilusuario.foto_perfil.url }}" alt="{{ ticket.asignado_a.username }}" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                            {% else %}
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; border: 2px solid #667eea;">{{ ticket.asignado_a.first_name|first|upper|default:ticket.asignado_a.username|first|upper }}</div>
+                            {% endif %}
+                            <span>{{ ticket.asignado_a.first_name|default:ticket.asignado_a.username }} {{ ticket.asignado_a.last_name }}</span>
+                        </div>
                     {% else %}
                         <span class="text-danger">Sin asignar</span>
                     {% endif %}
@@ -66,7 +82,8 @@
                 <h3>📅 Fecha creación</h3>
                 <p>{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
             </div>
-            {% if user.groups.all.0.name == 'Técnico' or user.is_superuser %}
+            {% with first_group=user.groups.all|first %}
+            {% if first_group.name == 'Técnico' or user.is_superuser %}
             <div class="info-card">
                 <h3>⏰ Límite SLA</h3>
                 <p>
@@ -83,6 +100,7 @@
                 </p>
             </div>
             {% endif %}
+            {% endwith %}
         </div>
     </div>
 
@@ -95,7 +113,7 @@
     </div>
 
     {# Sección de calificación del servicio (solo para el creador si el ticket está cerrado) #}
-    {% if user == ticket.creador and ticket.estado in 'resuelto,cerrado' and ticket.asignado_a %}
+    {% if user == ticket.creador and ticket.estado in 'resuelto|cerrado' and ticket.asignado_a %}
     <div class="rating-section" id="rating">
         <h2>⭐ Calificar Servicio del Técnico</h2>
         {% if ticket.calificacion_satisfaccion %}
@@ -220,9 +238,17 @@
                 {% for c in comentarios %}
                 <div class="comment-item">
                     <div class="comment-header">
-                        {# Muestra autor y fecha del comentario #}
-                        <span class="comment-author">{{ c.autor.username }}</span>
-                        <span class="comment-date">{{ c.fecha|date:"d/m/Y H:i" }}</span>
+                        {% if c.autor.perfilusuario.foto_perfil %}
+                            <img src="{{ c.autor.perfilusuario.foto_perfil.url }}" alt="{{ c.autor.username }}" class="comment-avatar">
+                        {% else %}
+                            <div class="comment-avatar initial">{{ c.autor.first_name|first|upper|default:c.autor.username|first|upper }}</div>
+                        {% endif %}
+                        <div class="comment-info">
+                            <div class="comment-author-row">
+                                <span class="comment-author">{{ c.autor.first_name|default:c.autor.username }} {{ c.autor.last_name }}</span>
+                                <span class="comment-date">{{ c.fecha|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
                     </div>
                     {# Muestra contenido del comentario #}
                     <div class="comment-content">

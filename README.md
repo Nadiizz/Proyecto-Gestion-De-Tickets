@@ -46,6 +46,21 @@ Sistema integral de gestión de tickets desarrollado para el Grupo Coyahue, que 
 - **Comando de gestión** para verificación periódica
 - **Indicadores visuales** de cumplimiento de SLA
 
+### 🔔 Sistema de Notificaciones Multi-canal
+- **Email automático**: Notificaciones SMTP profesionales en HTML
+- **WhatsApp**: Integración con Twilio para mensajes instantáneos
+- **Notificaciones web**: Sistema de polling en tiempo real (30 segundos)
+- **Campana interactiva**: Indicador visual en la barra de navegación
+- **Preferencias personalizables**: Los usuarios pueden configurar qué notificaciones recibir
+- **Notificaciones inteligentes**:
+  - ✅ Crear ticket → Notifica a administradores
+  - ✅ Asignar ticket → Notifica al técnico asignado
+  - ✅ Cambiar estado → Notifica al usuario creador
+  - ✅ Comentario nuevo → Notifica a involucrados
+- **Historial completo**: Listado de todas las notificaciones con filtros
+- **Gestión de lectura**: Marcar como leído/no leído
+- **API REST**: Endpoints para gestión programática
+
 ### 🔐 Sistema de Autenticación
 - **Registro validado** con dominios corporativos (@coyahue.com, @coyahue.cl)
 - **Roles y permisos**: Administrador, Técnico, Usuario
@@ -67,6 +82,7 @@ Sistema integral de gestión de tickets desarrollado para el Grupo Coyahue, que 
 - **PostgreSQL** - Base de datos relacional
 - **psycopg2** - Adaptador PostgreSQL
 - **python-decouple** - Gestión de variables de entorno
+- **Twilio 9.8.7** - Integración WhatsApp
 
 ### Frontend
 - **Bootstrap 4** - Framework CSS
@@ -209,6 +225,30 @@ EMAIL_HOST_USER = 'tu-email@coyahue.com'
 EMAIL_HOST_PASSWORD = 'tu-password'
 ```
 
+### Configuración de Notificaciones Multi-canal
+
+**Email SMTP** - Configurar en `.env`:
+```env
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=tu-email@gmail.com
+EMAIL_HOST_PASSWORD=tu-app-password
+DEFAULT_FROM_EMAIL=tu-email@gmail.com
+```
+
+**WhatsApp via Twilio** - Configurar en `.env`:
+```env
+TWILIO_ACCOUNT_SID=tu-account-sid
+TWILIO_AUTH_TOKEN=tu-auth-token
+TWILIO_WHATSAPP_NUMBER=+14155552671
+```
+
+**Preferencias de Notificación** - Los usuarios pueden configurar en su perfil:
+- Notificaciones por email
+- Notificaciones por WhatsApp
+- Notificaciones web
+
 ## 🚀 Uso del Sistema
 
 ### Para Usuarios
@@ -253,12 +293,16 @@ La documentación completa del proyecto se encuentra en la carpeta `/doc`:
 - **[Sistema de Métricas y SLA](doc/METRICAS_SLA_README.md)** - Analytics y monitoreo
 - **[Guía de Desarrollo](doc/05_DESARROLLO.md)** - Para desarrolladores
 - **[API y Comandos](doc/06_API_COMANDOS.md)** - Referencia técnica
+- **[Sistema de Notificaciones](doc/SISTEMA_NOTIFICACIONES.md)** - Documentación completa del sistema multi-canal
+- **[Inicio Rápido Notificaciones](INICIO_RAPIDO_NOTIFICACIONES.md)** - Guía de configuración rápida
 
 ## 📁 Estructura del Proyecto
 
 ```
 Proyecto-Gestion-De-Tickets/
 ├── doc/                          # Documentación completa
+│   ├── SISTEMA_NOTIFICACIONES.md # Sistema de notificaciones
+│   └── ...                       # Otros documentos
 ├── env/                          # Entorno virtual (no en Git)
 ├── ticket_coyahue/              # Configuración Django
 │   ├── settings.py              # Configuración principal
@@ -269,24 +313,34 @@ Proyecto-Gestion-De-Tickets/
 │   │   └── commands/
 │   │       └── verificar_sla.py # Comando SLA
 │   ├── migrations/              # Migraciones de BD
+│   │   └── 0008_*.py            # Migración notificaciones
 │   ├── static/                  # Archivos estáticos
 │   │   └── tickets/
-│   │       ├── css/            # Estilos
-│   │       ├── js/             # JavaScript
-│   │       └── img/            # Imágenes
+│   │       ├── css/
+│   │       │   └── common.css   # Estilos notificaciones
+│   │       ├── js/
+│   │       │   └── notificaciones.js  # Polling real-time
+│   │       └── img/
 │   ├── templates/               # Plantillas HTML
-│   │   ├── registration/       # Login/Registro
-│   │   └── tickets/            # Vistas de tickets
+│   │   ├── emails/
+│   │   │   └── notificacion.html # Template email
+│   │   ├── registration/
+│   │   └── tickets/
+│   │       └── lista_notificaciones.html # Historial
 │   ├── admin.py                 # Configuración admin
 │   ├── forms.py                 # Formularios
-│   ├── models.py                # Modelos de datos
+│   ├── models.py                # Modelos (incluye Notificacion)
+│   ├── services.py              # Servicios notificaciones
 │   ├── urls.py                  # URLs de la app
-│   └── views.py                 # Lógica de negocio
+│   └── views.py                 # Vistas + API endpoints
 ├── .env                         # Variables de entorno (no en Git)
 ├── .gitignore                   # Archivos ignorados
 ├── manage.py                    # CLI de Django
 ├── README.md                    # Este archivo
-└── requirements.txt             # Dependencias Python
+├── requirements.txt             # Dependencias Python
+├── INICIO_RAPIDO_NOTIFICACIONES.md
+├── RESUMEN_NOTIFICACIONES.md
+└── CHANGELOG_NOTIFICACIONES.md
 ```
 
 ## 🔒 Seguridad
@@ -319,4 +373,8 @@ Proyecto privado - © 2025 Grupo Coyahue. Todos los derechos reservados.
 
 ---
 
-**Última actualización**: Noviembre 2025
+**Última actualización**: Diciembre 2025
+**Sistema de Notificaciones**: ✅ Completado y en producción
+**Estado del Proyecto**: 🎉 **100% FUNCIONAL - LISTO PARA PRODUCCIÓN**
+
+Para más detalles técnicos, ver [REVISION_FINAL.md](REVISION_FINAL.md)

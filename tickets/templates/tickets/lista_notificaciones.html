@@ -1,0 +1,572 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="content-header">
+        <h2>📢 Mis Notificaciones</h2>
+        <div class="header-actions">
+            {% if total_notificaciones > 0 %}
+                <button class="btn btn-primary" onclick="marcarTodasLeidasNotificaciones()">✓ Marcar todas como leídas</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-section">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label for="tipo">Tipo de Notificación:</label>
+                <select name="tipo" id="tipo" class="form-select">
+                    <option value="">Todos</option>
+                    {% for value, label in tipos_notificacion %}
+                        <option value="{{ value }}" {% if tipo_filtro == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="prioridad">Prioridad:</label>
+                <select name="prioridad" id="prioridad" class="form-select">
+                    <option value="">Todas</option>
+                    {% for value, label in prioridades %}
+                        <option value="{{ value }}" {% if prioridad_filtro == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="leida">Estado:</label>
+                <select name="leida" id="leida" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="false" {% if leida_filtro == 'false' %}selected{% endif %}>No leídas</option>
+                    <option value="true" {% if leida_filtro == 'true' %}selected{% endif %}>Leídas</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+            <a href="{% url 'lista_notificaciones' %}" class="btn btn-secondary">Limpiar</a>
+        </form>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_notificaciones }}</div>
+            <div class="stat-label">Total de Notificaciones</div>
+        </div>
+        {% if page_obj %}
+            {% if total_notificaciones > page_obj|length %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ page_obj|length }}</div>
+                    <div class="stat-label">En esta página</div>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- Lista de Notificaciones -->
+    {% if page_obj %}
+        <div class="notifications-list">
+            {% for notificacion in page_obj %}
+                <div class="notification-card {% if not notificacion.leida %}unread{% endif %}" data-id="{{ notificacion.id }}">
+                    <div class="notification-card-header">
+                        <div class="notification-title-section">
+                            <!-- Emoji según tipo -->
+                            <span class="notification-emoji">
+                                {% if notificacion.tipo == 'ticket_creado' %}📌
+                                {% elif notificacion.tipo == 'ticket_asignado' %}📋
+                                {% elif notificacion.tipo == 'ticket_comentario' %}💬
+                                {% elif notificacion.tipo == 'ticket_resuelto' %}✅
+                                {% elif notificacion.tipo == 'estado_cambio' %}🔄
+                                {% elif notificacion.tipo == 'ticket_cerrado' %}🔒
+                                {% else %}📢{% endif %}
+                            </span>
+                            <div class="notification-info">
+                                <h3 class="notification-title">{{ notificacion.titulo }}</h3>
+                                <p class="notification-type">
+                                    {% for value, label in tipos_notificacion %}
+                                        {% if value == notificacion.tipo %}{{ label }}{% endif %}
+                                    {% endfor %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="notification-status">
+                            {% if notificacion.prioridad == 'critica' %}
+                                <span class="priority-badge priority-critical">🔴 CRÍTICA</span>
+                            {% elif notificacion.prioridad == 'alta' %}
+                                <span class="priority-badge priority-high">🟠 ALTA</span>
+                            {% elif notificacion.prioridad == 'media' %}
+                                <span class="priority-badge priority-medium">🔵 MEDIA</span>
+                            {% else %}
+                                <span class="priority-badge priority-low">🟢 BAJA</span>
+                            {% endif %}
+                            
+                            {% if notificacion.leida %}
+                                <span class="status-badge read">Leída</span>
+                            {% else %}
+                                <span class="status-badge unread">Sin leer</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="notification-content">
+                        <p class="notification-message">{{ notificacion.mensaje }}</p>
+                        
+                        <div class="notification-footer">
+                            <div class="notification-metadata">
+                                <span class="meta-item">📅 {{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                                {% if notificacion.ticket %}
+                                    <span class="meta-item">🎫 Ticket #{{ notificacion.ticket.id }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="notification-actions">
+                                {% if notificacion.enlace %}
+                                    <a href="{{ notificacion.enlace }}" class="btn btn-primary btn-small">Ver más →</a>
+                                {% endif %}
+                                {% if not notificacion.leida %}
+                                    <button class="btn btn-secondary btn-small" data-notif-id="{{ notificacion.id }}" onclick="marcarNotificacionLeida(this.dataset.notifId, event)">Marcar como leída</button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Información de entrega -->
+                        {% if notificacion.email_enviado or notificacion.whatsapp_enviado %}
+                            <div class="delivery-info">
+                                {% if notificacion.email_enviado %}
+                                    <span class="delivery-badge email" title="Email enviado el {{ notificacion.email_fecha|date:'d/m/Y H:i' }}">✉️ Email</span>
+                                {% endif %}
+                                {% if notificacion.whatsapp_enviado %}
+                                    <span class="delivery-badge whatsapp" title="WhatsApp enviado el {{ notificacion.whatsapp_fecha|date:'d/m/Y H:i' }}">💬 WhatsApp</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">« Primera</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">‹ Anterior</a>
+                {% endif %}
+
+                <div class="page-numbers">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="page-current">{{ num }}</span>
+                        {% else %}
+                            <a href="?page={{ num }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">Siguiente ›</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">Última »</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>No hay notificaciones</h3>
+            <p>No hay notificaciones que coincidan con los filtros aplicados.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<style>
+    .content-wrapper {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 20px;
+    }
+
+    .content-header h2 {
+        margin: 0;
+        font-size: 2rem;
+        color: #1f2937;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    /* Filtros */
+    .filter-section {
+        background-color: #f9fafb;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .filter-form {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .filter-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.875rem;
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        background-color: white;
+        cursor: pointer;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: #a855f7;
+        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+    }
+
+    /* Estadísticas */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #8e44ad 0%, #a855f7 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(162, 155, 254, 0.3);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    /* Lista de notificaciones */
+    .notifications-list {
+        display: grid;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .notification-card {
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .notification-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #a855f7;
+    }
+
+    .notification-card.unread {
+        background-color: #f8f4ff;
+        border-left: 4px solid #a855f7;
+    }
+
+    .notification-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+        gap: 15px;
+    }
+
+    .notification-title-section {
+        display: flex;
+        gap: 15px;
+        flex: 1;
+    }
+
+    .notification-emoji {
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+
+    .notification-info {
+        flex: 1;
+    }
+
+    .notification-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .notification-type {
+        margin: 5px 0 0 0;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .notification-status {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* Priority Badges */
+    .priority-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .priority-critical {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .priority-high {
+        background-color: #fed7aa;
+        color: #92400e;
+    }
+
+    .priority-medium {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .priority-low {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-badge.read {
+        background-color: #e5e7eb;
+        color: #4b5563;
+    }
+
+    .status-badge.unread {
+        background-color: #a855f7;
+        color: white;
+    }
+
+    .notification-content {
+        margin-top: 15px;
+    }
+
+    .notification-message {
+        margin: 0 0 15px 0;
+        color: #374151;
+        line-height: 1.6;
+    }
+
+    .notification-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 15px;
+    }
+
+    .notification-metadata {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .meta-item {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .notification-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 0.875rem;
+    }
+
+    .delivery-info {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .delivery-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .delivery-badge.email {
+        background-color: #dbeafe;
+        color: #0c4a6e;
+    }
+
+    .delivery-badge.whatsapp {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    /* Paginación */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+
+    .page-link {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        color: #3b82f6;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .page-link:hover {
+        background-color: #eff6ff;
+        border-color: #3b82f6;
+    }
+
+    .page-current {
+        padding: 8px 12px;
+        background-color: #a855f7;
+        color: white;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .page-numbers {
+        display: flex;
+        gap: 5px;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background-color: #f9fafb;
+        border-radius: 8px;
+        border: 2px dashed #d1d5db;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        margin: 0 0 10px 0;
+        font-size: 1.5rem;
+        color: #1f2937;
+    }
+
+    .empty-state p {
+        margin: 0;
+        color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+        .content-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .filter-form {
+            flex-direction: column;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .notification-card-header {
+            flex-direction: column;
+        }
+
+        .notification-footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .notification-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .btn-small {
+            width: 100%;
+            text-align: center;
+        }
+
+        .pagination {
+            gap: 5px;
+        }
+
+        .page-link {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+
+<script src="{% static 'tickets/js/notificaciones.js' %}"></script>
+{% endblock %}

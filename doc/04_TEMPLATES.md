@@ -625,4 +625,322 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ---
 
+## 📢 Template de Notificaciones (✨ NEW)
+
+### lista_notificaciones.html
+**Propósito**: Página central para gestionar todas las notificaciones del usuario
+
+**Ubicación**: `tickets/templates/tickets/lista_notificaciones.html`
+
+**Estructura**:
+```html
+{% extends "tickets/base_intranet.html" %}
+{% load static %}
+
+{% block title %}Mis Notificaciones{% endblock %}
+
+{% block content %}
+<div class="notificaciones-container">
+    <div class="notificaciones-header">
+        <h2>🔔 Mis Notificaciones</h2>
+        <div class="notificaciones-actions">
+            <span class="badge badge-warning" id="contador-nuevas">
+                {{ sin_leer }}
+            </span>
+            {% if sin_leer > 0 %}
+                <button class="btn btn-sm btn-outline-secondary"
+                        id="marcar-todas-leidas">
+                    ✓ Marcar todas como leídas
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    {% if notificaciones %}
+        <div class="notificaciones-list">
+            {% for notif in notificaciones %}
+                <div class="notificacion-item {% if not notif.leida %}sin-leer{% endif %}"
+                     data-id="{{ notif.id }}">
+                    
+                    <div class="notificacion-icono">
+                        {% if notif.tipo == 'ticket_creado' %}
+                            📝
+                        {% elif notif.tipo == 'ticket_asignado' %}
+                            👤
+                        {% elif notif.tipo == 'ticket_comentario' %}
+                            💬
+                        {% elif notif.tipo == 'estado_cambio' %}
+                            ⚡
+                        {% elif notif.tipo == 'ticket_resuelto' %}
+                            ✅
+                        {% elif notif.tipo == 'ticket_cerrado' %}
+                            🔒
+                        {% else %}
+                            ℹ️
+                        {% endif %}
+                    </div>
+                    
+                    <div class="notificacion-contenido">
+                        <div class="notificacion-titulo">
+                            <h5>{{ notif.titulo }}</h5>
+                            <span class="badge badge-{{ notif.prioridad }}">
+                                {{ notif.get_prioridad_display }}
+                            </span>
+                        </div>
+                        <p class="notificacion-mensaje">{{ notif.mensaje }}</p>
+                        
+                        {% if notif.ticket %}
+                            <a href="{{ notif.ticket.get_absolute_url }}"
+                               class="notificacion-enlace">
+                                → Ver Ticket #{{ notif.ticket.id }}
+                            </a>
+                        {% endif %}
+                        
+                        <small class="notificacion-fecha">
+                            {{ notif.fecha_creacion|date:"d/m/Y H:i" }}
+                            {% if notif.fecha_leida %}
+                                (leída {{ notif.fecha_leida|date:"d/m/Y H:i" }})
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <div class="notificacion-acciones">
+                        {% if not notif.leida %}
+                            <button class="btn btn-sm btn-link marcar-leida"
+                                    data-id="{{ notif.id }}">
+                                ✓ Marcar como leída
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p>✓ No tienes notificaciones nuevas</p>
+            <small>Aquí aparecerán tus notificaciones cuando recibas updates</small>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.notificaciones-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.notificaciones-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 15px;
+}
+
+.notificaciones-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.notificacion-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    transition: all 0.3s ease;
+}
+
+.notificacion-item.sin-leer {
+    background: #f8f9ff;
+    border-color: #4CAF50;
+    border-left: 4px solid #4CAF50;
+}
+
+.notificacion-icono {
+    font-size: 24px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.notificacion-contenido {
+    flex: 1;
+}
+
+.notificacion-titulo {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.notificacion-titulo h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.badge-baja { background: #90EE90; }
+.badge-media { background: #FFD700; }
+.badge-alta { background: #FF8C00; }
+.badge-critica { background: #FF4500; }
+
+.notificacion-mensaje {
+    margin: 5px 0;
+    color: #666;
+}
+
+.notificacion-enlace {
+    display: block;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+    margin: 5px 0;
+}
+
+.notificacion-fecha {
+    display: block;
+    color: #999;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.notificacion-acciones {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+</style>
+
+<script>
+// Marcar notificación como leída
+document.querySelectorAll('.marcar-leida').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const notifId = this.getAttribute('data-id');
+        fetch(`/api/notificaciones/${notifId}/marcar-leida/`, {
+            method: 'POST'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const item = document.querySelector(
+                    `[data-id="${notifId}"]`
+                );
+                item.classList.remove('sin-leer');
+                this.remove();
+                actualizarContador();
+            }
+        });
+    });
+});
+
+// Marcar todas como leídas
+const btnTodasLeidas = document.getElementById('marcar-todas-leidas');
+if (btnTodasLeidas) {
+    btnTodasLeidas.addEventListener('click', function() {
+        fetch('/api/notificaciones/marcar-todas-leidas/', {
+            method: 'POST'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelectorAll('.notificacion-item').forEach(item => {
+                    item.classList.remove('sin-leer');
+                });
+                document.querySelectorAll('.marcar-leida').forEach(btn => {
+                    btn.remove();
+                });
+                btnTodasLeidas.remove();
+            }
+        });
+    });
+}
+
+// Actualizar contador de nuevas notificaciones
+function actualizarContador() {
+    fetch('/api/notificaciones/nuevas/')
+        .then(r => r.json())
+        .then(data => {
+            const contador = document.getElementById('contador-nuevas');
+            if (contador) {
+                contador.textContent = data.sin_leer;
+            }
+        });
+}
+</script>
+{% endblock %}
+```
+
+### Campana (Bell Icon Component)
+**Ubicación**: `tickets/static/tickets/js/notificaciones-campana.js`
+
+**Descripción**: Componente que muestra una campana con contador de notificaciones nuevas en la navbar
+
+```javascript
+class NotificacionesCampana {
+    constructor(apiUrl = '/api/notificaciones/nuevas/') {
+        this.apiUrl = apiUrl;
+        this.intervalo = 30000; // 30 segundos
+        this.init();
+    }
+    
+    init() {
+        this.crearCampana();
+        this.actualizar();
+        setInterval(() => this.actualizar(), this.intervalo);
+    }
+    
+    crearCampana() {
+        const html = `
+            <div class="notificaciones-campana">
+                <button id="btn-campana" class="btn btn-link">
+                    🔔 <span id="contador-campana" class="badge">0</span>
+                </button>
+                <div id="dropdown-notificaciones" class="dropdown-menu">
+                    <!-- Se carga dinámicamente -->
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        document.getElementById('btn-campana')
+            .addEventListener('click', () => this.mostrarDropdown());
+    }
+    
+    actualizar() {
+        fetch(this.apiUrl)
+            .then(r => r.json())
+            .then(data => {
+                const contador = document.getElementById('contador-campana');
+                if (contador) {
+                    contador.textContent = data.sin_leer;
+                    if (data.sin_leer > 0) {
+                        contador.style.display = 'inline';
+                    } else {
+                        contador.style.display = 'none';
+                    }
+                }
+            });
+    }
+    
+    mostrarDropdown() {
+        // Lógica para mostrar dropdown con últimas notificaciones
+    }
+}
+
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        new NotificacionesCampana();
+    });
+} else {
+    new NotificacionesCampana();
+}
+```
+
+---
+
 **Siguiente**: [Guía de Desarrollo →](05_DESARROLLO.md)

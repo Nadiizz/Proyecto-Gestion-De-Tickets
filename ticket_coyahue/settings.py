@@ -190,3 +190,41 @@ LOGGING = {
     },
 }
 
+# ============================================
+# CONSTANTES DE APLICACIÓN
+# ============================================
+
+# Grupos de usuarios (roles)
+GRUPO_ADMINISTRADOR = 'Administrador'
+GRUPO_TECNICO = 'Técnico'
+GRUPO_USUARIO = 'Usuario'
+
+# Configuración de tickets
+TICKETS_POR_PAGINA = 10
+DIAS_METRICAS_DEFAULT = 30
+TOP_TECNICOS_LIMIT = 10
+TOP_AREAS_LIMIT = 10
+
+# Archivos
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.xlsx', '.xls', '.zip']
+
+# ============================================
+# CONFIGURACIÓN DE EMAIL (Notificaciones)
+# ============================================
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@coyahue.com')
+
+# ============================================
+# CONFIGURACIÓN DE TWILIO (WhatsApp)
+# ============================================
+
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
+TWILIO_WHATSAPP_NUMBER = config('TWILIO_WHATSAPP_NUMBER', default='whatsapp:+1234567890')
