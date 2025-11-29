@@ -374,7 +374,3 @@ Proyecto privado - © 2025 Grupo Coyahue. Todos los derechos reservados.
 ---
 
 **Última actualización**: Diciembre 2025
-**Sistema de Notificaciones**: ✅ Completado y en producción
-**Estado del Proyecto**: 🎉 **100% FUNCIONAL - LISTO PARA PRODUCCIÓN**
-
-Para más detalles técnicos, ver [REVISION_FINAL.md](REVISION_FINAL.md)
