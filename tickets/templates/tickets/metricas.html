@@ -163,11 +163,11 @@
             </div>
 
             <div class="resolution-card">
-                <h4>🏢 Tickets por Área Afectada (Top 10)</h4>
+                <h4>📁 Tickets por Categoría (Top 10)</h4>
                 <div class="chart-container">
                     {% for area in tickets_por_area %}
                     <div class="bar-chart-item">
-                        <div class="bar-label">{{ area.area_afectada }}</div>
+                        <div class="bar-label">{{ area.categoria__nombre }}</div>
                         <div class="bar-wrapper">
                             <div class="bar-fill" data-width="{{ area.porcentaje }}">
                                 <span class="bar-value">{{ area.total }}</span>

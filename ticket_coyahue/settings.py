@@ -55,8 +55,20 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Deshabilitamos X-Frame-Options para permitir embeds de video
+    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# ============================================
+# CONFIGURACIÓN DE SEGURIDAD PARA EMBEDS
+# ============================================
+
+# Permitir que la página sea embebida (necesario para iframes de video)
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Content Security Policy - Permitir embeds de YouTube y Vimeo
+# Esto permite cargar iframes de estas fuentes
+CSP_FRAME_SRC = ("'self'", "https://www.youtube.com", "https://youtube.com", "https://player.vimeo.com", "https://vimeo.com")
 
 ROOT_URLCONF = 'ticket_coyahue.urls'
 
@@ -71,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'tickets.context_processors.permisos_usuario',  # Permisos de roles personalizados
             ],
         },
     },
@@ -118,7 +131,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Ajustamos la zona horaria a la local (Chile - Coyahue). Esto hace que
+# los datetimes con USE_TZ=True se muestren en esta zona por defecto.
+TIME_ZONE = 'America/Santiago'
 
 USE_I18N = True
 
@@ -208,6 +223,19 @@ TOP_AREAS_LIMIT = 10
 # Archivos
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.xlsx', '.xls', '.zip']
+
+# ============================================
+# LÍMITES DE CARGA DE DATOS (para videos en FAQ)
+# ============================================
+
+# Tamaño máximo del cuerpo de la solicitud (100 MB para videos)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB en bytes
+
+# Tamaño máximo de archivo individual
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB en bytes
+
+# Número máximo de campos GET/POST
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
 # ============================================
 # CONFIGURACIÓN DE EMAIL (Notificaciones)

@@ -1,0 +1,678 @@
+/* ============================================
+   ESTILOS PARA MI PERFIL
+   Página de configuración del usuario
+   Con animaciones de transición de página
+   ============================================ */
+
+/* =====================
+   ANIMACIONES
+   ===================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes borderGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(142, 68, 173, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(142, 68, 173, 0.6);
+    }
+}
+
+/* =====================
+   CONTENEDOR PRINCIPAL
+   ===================== */
+.profile-container {
+    max-width: 950px;
+    margin: 0 auto;
+    padding: 2rem;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* =====================
+   HEADER DEL PERFIL
+   ===================== */
+.profile-header {
+    background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 50%, #a855f7 100%);
+    color: white;
+    padding: 2.5rem 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(142, 68, 173, 0.3);
+    animation: fadeInDown 0.5s ease-out;
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite linear;
+}
+
+.profile-header::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.profile-header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.profile-header p {
+    margin: 0.75rem 0 0 0;
+    opacity: 0.95;
+    position: relative;
+    z-index: 1;
+    font-size: 1.05rem;
+}
+
+/* =====================
+   SECCIONES DEL PERFIL
+   ===================== */
+.profile-section {
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
+}
+
+.profile-section:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.profile-section:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.profile-section:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.profile-section:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.profile-section h2 {
+    color: #2c3e50;
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg, #8e44ad, #a855f7) 1;
+    padding-bottom: 1rem;
+    margin: 0 0 1.5rem 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-section h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* =====================
+   FORMULARIOS
+   ===================== */
+.form-group {
+    margin-bottom: 1.5rem;
+    animation: slideInLeft 0.4s ease-out;
+    animation-fill-mode: both;
+}
+
+.form-group:nth-child(odd) {
+    animation-name: slideInLeft;
+}
+
+.form-group:nth-child(even) {
+    animation-name: slideInRight;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    background: #fafafa;
+}
+
+.form-control:hover {
+    border-color: #c9c9c9;
+    background: white;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #8e44ad;
+    box-shadow: 0 0 0 4px rgba(142, 68, 173, 0.1);
+    background: white;
+}
+
+.form-control:focus + .help-text {
+    color: #8e44ad;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+/* =====================
+   FOTO DE PERFIL
+   ===================== */
+.profile-photo-container {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%);
+    border-radius: 12px;
+}
+
+.profile-photo {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, #8e44ad, #a855f7) border-box;
+    display: block;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 8px 25px rgba(142, 68, 173, 0.25);
+    transition: all 0.4s ease;
+    animation: scaleIn 0.5s ease-out;
+}
+
+.profile-photo:hover {
+    transform: scale(1.05) rotate(2deg);
+    box-shadow: 0 12px 35px rgba(142, 68, 173, 0.35);
+    animation: borderGlow 1.5s ease-in-out infinite;
+}
+
+.file-input-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    width: 100%;
+    max-width: 280px;
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    left: -9999px;
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.5rem;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.file-input-label:hover {
+    background: linear-gradient(135deg, #2980b9 0%, #1f6dad 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.file-input-label:active {
+    transform: translateY(0);
+}
+
+/* =====================
+   TEXTO DE AYUDA
+   ===================== */
+.help-text {
+    display: block;
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-top: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+/* =====================
+   ACCIONES DE FORMULARIO
+   ===================== */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.btn {
+    padding: 0.85rem 1.75rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, #8e44ad 0%, #a855f7 100%);
+    color: white;
+    flex: 1;
+    box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-submit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.btn-submit:hover {
+    background: linear-gradient(135deg, #7d3c98 0%, #9333ea 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(142, 68, 173, 0.4);
+}
+
+.btn-submit:hover::before {
+    left: 100%;
+}
+
+.btn-submit:active {
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: white;
+    flex: 1;
+    box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #7f8c8d 0%, #6c7a7b 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+}
+
+/* =====================
+   GRID DE INFORMACIÓN
+   ===================== */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.info-item {
+    background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%);
+    padding: 1.25rem;
+    border-radius: 10px;
+    border-left: 4px solid #8e44ad;
+    transition: all 0.3s ease;
+    animation: slideInLeft 0.5s ease-out;
+    animation-fill-mode: both;
+}
+
+.info-item:nth-child(2) {
+    animation-name: slideInRight;
+    animation-delay: 0.1s;
+}
+
+.info-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+}
+
+.info-item strong {
+    display: block;
+    color: #2c3e50;
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-item span {
+    color: #555;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* =====================
+   ALERTAS
+   ===================== */
+.alert {
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: fadeInDown 0.4s ease-out;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d5f4e6 0%, #c3f0d9 100%);
+    color: #1e8449;
+    border: 1px solid #27ae60;
+}
+
+.alert-danger,
+.alert-error {
+    background: linear-gradient(135deg, #fadbd8 0%, #f5c6c2 100%);
+    color: #c0392b;
+    border: 1px solid #e74c3c;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffecb3 100%);
+    color: #856404;
+    border: 1px solid #f39c12;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+    border: 1px solid #17a2b8;
+}
+
+/* =====================
+   NOTA IMPORTANTE
+   ===================== */
+.warning-note {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffecb3 100%);
+    border-left: 4px solid #f39c12;
+    padding: 1.25rem;
+    border-radius: 10px;
+    margin: 1.5rem 0;
+    animation: pulse 2s ease-in-out infinite;
+    animation-delay: 1s;
+}
+
+.warning-note strong {
+    color: #e67e22;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.warning-note p {
+    margin: 0.5rem 0 0 0;
+    color: #856404;
+    line-height: 1.5;
+}
+
+/* =====================
+   SECCIÓN DE SEGURIDAD
+   ===================== */
+.security-intro {
+    color: #7f8c8d;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #8e44ad;
+}
+
+/* =====================
+   ANIMACIÓN DE TRANSICIÓN DE PÁGINA
+   ===================== */
+.page-transition-enter {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.page-transition-leave {
+    animation: fadeOutDown 0.3s ease-in forwards;
+}
+
+@keyframes fadeOutDown {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+/* =====================
+   EFECTOS HOVER INPUTS
+   ===================== */
+.form-group:focus-within label {
+    color: #8e44ad;
+}
+
+.form-group:focus-within .help-text {
+    color: #8e44ad;
+}
+
+/* =====================
+   RESPONSIVE
+   ===================== */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .profile-header {
+        padding: 2rem 1.5rem;
+        border-radius: 12px;
+    }
+
+    .profile-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .profile-section {
+        padding: 1.5rem;
+        border-radius: 12px;
+    }
+
+    .profile-container {
+        padding: 1rem;
+    }
+
+    .profile-photo {
+        width: 130px;
+        height: 130px;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+    }
+
+    .file-input-wrapper {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .profile-section h2 {
+        font-size: 1.2rem;
+    }
+
+    .profile-photo {
+        width: 110px;
+        height: 110px;
+    }
+}
+
+/* =====================
+   PREFERENCIAS DE MOVIMIENTO REDUCIDO
+   ===================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

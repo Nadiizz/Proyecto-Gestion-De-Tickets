@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.db.models import Q, Avg, Count, Sum
 from django.db.models.functions import TruncDate
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.conf import settings
@@ -47,17 +47,446 @@ ALLOWED_FILE_EXTENSIONS = settings.ALLOWED_FILE_EXTENSIONS
 # Mantiene historial de cambios y comentarios para cada ticket
 
 
+# ============================================
+# FUNCIONES DE VERIFICACIÓN DE PERMISOS
+# ============================================
+
+def obtener_permisos_rol_personalizado(user):
+    """Obtiene los permisos del rol personalizado del usuario si existe"""
+    try:
+        perfil = user.perfilusuario
+        if perfil.rol_personalizado and perfil.rol_personalizado.activo:
+            return perfil.rol_personalizado
+    except (PerfilUsuario.DoesNotExist, AttributeError):
+        pass
+    return None
+
+
+def tiene_permiso_rol(user, permiso):
+    """Verifica si el usuario tiene un permiso específico a través de su rol personalizado"""
+    rol = obtener_permisos_rol_personalizado(user)
+    if rol:
+        return getattr(rol, permiso, False)
+    return False
+
+
 # Función auxiliar para verificar si un usuario pertenece al grupo Administrador
 def es_admin(user):
-    return user.groups.filter(name=GRUPO_ADMINISTRADOR).exists()
+    # Primero verifica grupo tradicional
+    if user.groups.filter(name=GRUPO_ADMINISTRADOR).exists():
+        return True
+    # Luego verifica si tiene todos los permisos de admin via rol personalizado
+    rol = obtener_permisos_rol_personalizado(user)
+    if rol:
+        # Un usuario con rol personalizado es "admin" si tiene permisos de gestión
+        return rol.puede_gestionar_usuarios and rol.puede_crear_roles
+    return False
+
 
 # Función auxiliar para verificar si un usuario es técnico
 def es_tecnico(user):
-    return user.groups.filter(name=GRUPO_TECNICO).exists()
+    # Primero verifica grupo tradicional
+    if user.groups.filter(name=GRUPO_TECNICO).exists():
+        return True
+    # Luego verifica si tiene permisos de técnico via rol personalizado
+    rol = obtener_permisos_rol_personalizado(user)
+    if rol:
+        return rol.puede_cambiar_estado or rol.puede_asignar_tickets
+    return False
+
 
 # Función auxiliar para verificar si un usuario es usuario regular
 def es_usuario_regular(user):
     return user.groups.filter(name=GRUPO_USUARIO).exists()
+
+
+# Funciones específicas para verificar permisos individuales del rol personalizado
+def puede_ver_metricas(user):
+    """Verifica si el usuario puede ver métricas"""
+    if es_admin(user):
+        return True
+    return tiene_permiso_rol(user, 'puede_ver_metricas')
+
+
+def puede_ver_todos_tickets(user):
+    """Verifica si el usuario puede ver todos los tickets"""
+    if es_admin(user) or es_tecnico(user):
+        return True
+    return tiene_permiso_rol(user, 'puede_ver_todos_tickets')
+
+
+def puede_asignar_tickets(user):
+    """Verifica si el usuario puede asignar tickets"""
+    if es_admin(user):
+        return True
+    return tiene_permiso_rol(user, 'puede_asignar_tickets')
+
+
+def puede_autoasignarse_tickets(user):
+    """Verifica si el usuario (técnico) puede autoasignarse tickets"""
+    # Solo los técnicos pueden autoasignarse tickets
+    return es_tecnico(user)
+
+
+def puede_cambiar_estado(user):
+    """Verifica si el usuario puede cambiar estado de tickets"""
+    if es_admin(user) or es_tecnico(user):
+        return True
+    return tiene_permiso_rol(user, 'puede_cambiar_estado')
+
+
+def puede_gestionar_usuarios(user):
+    """Verifica si el usuario puede gestionar usuarios"""
+    if es_admin(user):
+        return True
+    return tiene_permiso_rol(user, 'puede_gestionar_usuarios')
+
+
+def puede_crear_roles(user):
+    """Verifica si el usuario puede crear roles"""
+    if es_admin(user):
+        return True
+    return tiene_permiso_rol(user, 'puede_crear_roles')
+
+
+def puede_validar_prioridad(user):
+    """Verifica si el usuario puede validar prioridades auto-detectadas (Supervisores)"""
+    if es_admin(user):
+        return True
+    return tiene_permiso_rol(user, 'puede_validar_prioridad')
+
+
+def detectar_prioridad_automatica(titulo, descripcion, tipo_solicitud=None):
+    """
+    Detecta automáticamente la prioridad de un ticket basándose en palabras clave
+    y el tipo de solicitud seleccionado.
+    
+    Sistema híbrido inteligente que:
+    - Detecta palabras individuales y frases exactas
+    - Combina dispositivos + problemas para mejor precisión
+    - Ajusta la prioridad según el tipo de solicitud (problema, incidencia, solicitud, cambio)
+    
+    Args:
+        titulo: Título del ticket
+        descripcion: Descripción del ticket
+        tipo_solicitud: Tipo de ticket ('incidencia', 'solicitud', 'problema', 'cambio')
+                       Si es None, no se aplica modificador por tipo.
+    
+    Returns:
+        tuple: (prioridad_detectada, nivel_confianza, palabras_encontradas)
+        - prioridad_detectada: 'critica', 'alta', 'media', 'baja'
+        - nivel_confianza: 'alta', 'media', 'baja'
+        - palabras_encontradas: lista de palabras clave detectadas
+    """
+    import re
+    import unicodedata
+    
+    def normalizar_texto(texto):
+        """Normaliza el texto: minúsculas, sin acentos, sin caracteres especiales"""
+        texto = texto.lower()
+        texto = unicodedata.normalize('NFD', texto)
+        texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
+        return texto
+    
+    def buscar_palabra(palabra, texto):
+        """Busca una palabra individual con límites de palabra"""
+        palabra_escaped = re.escape(palabra)
+        patron = r'(?:^|[\s,.\-_;:!?¿¡()\[\]{}"\'/])' + palabra_escaped + r'(?:$|[\s,.\-_;:!?¿¡()\[\]{}"\'/]|s\b|es\b|n\b)'
+        return bool(re.search(patron, texto))
+    
+    def buscar_frase(frase, texto):
+        """Busca una frase exacta en el texto"""
+        return frase in texto
+    
+    # Normalizar texto de entrada
+    texto_normalizado = normalizar_texto(f"{titulo} {descripcion}")
+    palabras_encontradas = []
+    
+    # ============================================
+    # PALABRAS CLAVE CRÍTICAS (peso: 2 puntos)
+    # ============================================
+    
+    palabras_criticas_individuales = [
+        'urgente', 'urgentisimo', 'emergencia', 'critico', 'critica',
+        'hackeo', 'hackeado', 'hackearon', 'virus', 'ransomware', 'malware',
+        'incendio', 'accidente', 'inmediato', 'inmediatamente',
+        'colapso', 'colapsado', 'caido', 'caida', 'paralizado', 'paralizada',
+        'corrupta', 'corrupto', 'corrupcion', 'ataque', 'atacaron',
+        'robo', 'robaron', 'intrusion', 'vulnerabilidad',
+        'servidor'  # Un problema de servidor generalmente afecta a muchos usuarios
+    ]
+    
+    frases_criticas = [
+        'sistema caido', 'servidor caido', 'red caida', 'internet caido',
+        'servidor no responde', 'servidor no funciona', 'servidores caidos',
+        'no funciona nada', 'nada funciona', 'todo caido', 'todo parado',
+        'perdida de datos', 'perdieron datos', 'se borraron',
+        'produccion detenida', 'produccion parada', 'planta parada',
+        'no podemos trabajar', 'nadie puede trabajar', 'empresa parada',
+        'base de datos corrupta', 'bd corrupta', 'datos corruptos',
+        'ahora mismo', 'ya mismo', 'en este momento', 'de inmediato',
+        'toda la empresa', 'todo el departamento', 'todos afectados',
+        'bloqueo total', 'bloqueado totalmente', 'sin acceso total',
+        'seguridad comprometida', 'brecha de seguridad',
+        'sistema no responde', 'sistema no funciona', 'sin sistema',
+        'sin servidor', 'sin servicio', 'servicio caido'
+    ]
+    
+    # ============================================
+    # PALABRAS CLAVE ALTA - PROBLEMAS (peso: 1.5 puntos)
+    # Estas palabras por sí solas indican un problema
+    # ============================================
+    
+    palabras_problema = [
+        'error', 'falla', 'fallo', 'averia', 'defecto', 'bug',
+        'bloqueado', 'bloqueada', 'congelado', 'congelada', 'trabado', 'trabada',
+        'colgado', 'colgada', 'lento', 'lenta', 'lentisimo',
+        'danado', 'danada', 'roto', 'rota', 'quemado', 'quemada', 'malogrado',
+        'descompuesto', 'descompuesta', 'estropeado', 'estropeada'
+    ]
+    
+    frases_problema = [
+        'no funciona', 'no enciende', 'no prende', 'no inicia', 'no arranca',
+        'no responde', 'no carga', 'no abre', 'no imprime', 'no conecta',
+        'no reconoce', 'no detecta', 'no lee', 'no guarda', 'no graba',
+        'dejo de funcionar', 'dejo de andar', 'se apago', 'se apaga solo',
+        'se reinicia solo', 'se reinicia', 'se traba', 'se congela', 'se cuelga',
+        'pantalla negra', 'pantalla azul', 'pantalla en negro',
+        'sin conexion', 'sin internet', 'sin red', 'sin wifi', 'sin senal',
+        'muy lento', 'demasiado lento', 'extremadamente lento',
+        'esta fallando', 'esta malo', 'no sirve', 'no anda'
+    ]
+    
+    # ============================================
+    # PALABRAS CLAVE ALTA - URGENCIA (peso: 1.5 puntos)
+    # ============================================
+    
+    palabras_urgencia = [
+        'importante', 'prioritario', 'priority', 'rapido', 'rapidamente',
+        'pronto', 'deadline', 'auditoria', 'presentacion'
+    ]
+    
+    frases_urgencia = [
+        'varios usuarios', 'afecta varios', 'multiples usuarios',
+        'equipo completo', 'todo el equipo', 'varios equipos',
+        'cliente importante', 'cliente vip', 'cuenta importante',
+        'fecha limite', 'plazo limite', 'entrega manana', 'para hoy',
+        'cuanto antes', 'lo antes posible', 'asap', 'necesito ya',
+        'afecta negocio', 'afecta ventas', 'afecta produccion',
+        'reunion urgente', 'junta urgente', 'llamada importante'
+    ]
+    
+    # ============================================
+    # DISPOSITIVOS/HARDWARE (NO suman por sí solos)
+    # Solo se usan para detectar contexto
+    # Nota: 'servidor' NO está aquí porque es crítico por naturaleza
+    # ============================================
+    
+    dispositivos = [
+        'monitor', 'pantalla', 'teclado', 'mouse', 'raton',
+        'impresora', 'scanner', 'escaner', 'telefono', 'celular',
+        'computador', 'computadora', 'laptop', 'notebook', 'pc', 'cpu',
+        'disco', 'memoria', 'ram', 'procesador', 'fuente', 'cargador',
+        'cable', 'usb', 'hdmi', 'auriculares', 'audifonos', 'camara',
+        'proyector', 'router', 'switch', 'modem'
+    ]
+    
+    # ============================================
+    # PALABRAS CLAVE BAJA (peso: 1 punto)
+    # ============================================
+    
+    palabras_baja_individuales = [
+        'mejora', 'sugerencia', 'recomendacion', 'idea', 'propuesta',
+        'opcional', 'optativo', 'cosmetico', 'estetico', 'visual',
+        'menor', 'minimo', 'pequeno', 'simple', 'basico',
+        'consulta', 'duda', 'pregunta', 'informacion'
+    ]
+    
+    frases_baja = [
+        'cuando pueda', 'cuando puedan', 'cuando tengan tiempo',
+        'si tienen tiempo', 'si pueden', 'si es posible',
+        'no urgente', 'no es urgente', 'sin prisa', 'sin apuro',
+        'para cuando sea', 'en algun momento', 'sin afan',
+        'puede esperar', 'no corre prisa', 'baja prioridad',
+        'nice to have', 'seria bueno', 'estaria bien',
+        'solo queria saber', 'solo para saber', 'por curiosidad',
+        'no es grave', 'no es importante', 'no pasa nada',
+        # Solicitudes que no son problemas
+        'solicitar', 'solicito', 'cambio de', 'necesito un', 'requiero',
+        'quiero pedir', 'quisiera', 'podrian', 'seria posible'
+    ]
+    
+    # ============================================
+    # PALABRAS NEUTRAS (peso: 0 - solo contexto)
+    # ============================================
+    
+    palabras_neutras = [
+        'cambio', 'nuevo', 'nueva', 'reemplazo', 'actualizar',
+        'instalar', 'configurar', 'agregar', 'solicitud'
+    ]
+    
+    # ============================================
+    # CALCULAR SCORES
+    # ============================================
+    
+    score_critico = 0
+    score_alto = 0
+    score_bajo = 0
+    
+    tiene_dispositivo = False
+    tiene_problema = False
+    tiene_palabra_neutra = False
+    
+    # Detectar dispositivos (no suma puntos por sí solo)
+    for dispositivo in dispositivos:
+        if buscar_palabra(dispositivo, texto_normalizado):
+            tiene_dispositivo = True
+            break
+    
+    # Detectar palabras neutras (indica que puede ser solicitud, no problema)
+    for neutra in palabras_neutras:
+        if buscar_palabra(neutra, texto_normalizado):
+            tiene_palabra_neutra = True
+            break
+    
+    # Buscar palabras críticas
+    for palabra in palabras_criticas_individuales:
+        if buscar_palabra(palabra, texto_normalizado):
+            score_critico += 2
+            palabras_encontradas.append(f'"{palabra}" (crítica)')
+    
+    for frase in frases_criticas:
+        if buscar_frase(frase, texto_normalizado):
+            score_critico += 2
+            palabras_encontradas.append(f'"{frase}" (crítica)')
+    
+    # Buscar palabras de PROBLEMA (estas sí suman alta)
+    for palabra in palabras_problema:
+        if buscar_palabra(palabra, texto_normalizado):
+            score_alto += 1.5
+            tiene_problema = True
+            palabras_encontradas.append(f'"{palabra}" (alta)')
+    
+    for frase in frases_problema:
+        if buscar_frase(frase, texto_normalizado):
+            score_alto += 1.5
+            tiene_problema = True
+            palabras_encontradas.append(f'"{frase}" (alta)')
+    
+    # Buscar palabras de URGENCIA
+    for palabra in palabras_urgencia:
+        if buscar_palabra(palabra, texto_normalizado):
+            score_alto += 1.5
+            palabras_encontradas.append(f'"{palabra}" (alta)')
+    
+    for frase in frases_urgencia:
+        if buscar_frase(frase, texto_normalizado):
+            score_alto += 1.5
+            palabras_encontradas.append(f'"{frase}" (alta)')
+    
+    # Buscar palabras de baja prioridad
+    for palabra in palabras_baja_individuales:
+        if buscar_palabra(palabra, texto_normalizado):
+            score_bajo += 1
+            palabras_encontradas.append(f'"{palabra}" (baja)')
+    
+    for frase in frases_baja:
+        if buscar_frase(frase, texto_normalizado):
+            score_bajo += 1.5  # Las frases de baja pesan más
+            palabras_encontradas.append(f'"{frase}" (baja)')
+    
+    # ============================================
+    # MODIFICADOR POR TIPO DE SOLICITUD
+    # ============================================
+    # El tipo de solicitud puede aumentar o disminuir la prioridad detectada
+    
+    modificador_tipo = 0  # Neutro por defecto
+    tipo_info = ""
+    
+    if tipo_solicitud:
+        tipo_normalizado = tipo_solicitud.lower().strip()
+        
+        if tipo_normalizado == 'problema':
+            # "Problema" indica algo que ya está afectando, sube prioridad
+            modificador_tipo = 1.5
+            tipo_info = "tipo=problema (+1.5)"
+            # Si el usuario dice que es un problema, dar más peso a palabras de problema
+            if tiene_problema:
+                score_alto += 1  # Bonus adicional
+                
+        elif tipo_normalizado == 'incidencia':
+            # "Incidencia" es neutro, algo ocurrió pero puede no ser grave
+            modificador_tipo = 0.5
+            tipo_info = "tipo=incidencia (+0.5)"
+            
+        elif tipo_normalizado == 'solicitud':
+            # "Solicitud" generalmente son peticiones, no urgencias
+            modificador_tipo = -1
+            tipo_info = "tipo=solicitud (-1)"
+            # Si es solicitud y tiene palabras neutras, reforzar baja prioridad
+            if tiene_palabra_neutra and not tiene_problema:
+                score_bajo += 1
+                
+        elif tipo_normalizado == 'cambio':
+            # "Cambio" son modificaciones planificadas, no urgentes
+            modificador_tipo = -1.5
+            tipo_info = "tipo=cambio (-1.5)"
+            # Cambios sin problemas detectados = baja prioridad
+            if not tiene_problema:
+                score_bajo += 1.5
+    
+    # Agregar info del tipo a las palabras encontradas si aplica
+    if tipo_info:
+        palabras_encontradas.append(tipo_info)
+    
+    # Aplicar modificador a los scores
+    score_alto += modificador_tipo
+    score_bajo -= modificador_tipo  # Inverso para balance
+    
+    # ============================================
+    # LÓGICA DE DECISIÓN INTELIGENTE
+    # ============================================
+    
+    # Eliminar duplicados
+    palabras_encontradas = list(dict.fromkeys(palabras_encontradas))
+    
+    # Si tiene dispositivo + palabra neutra (ej: "cambio de mouse") = BAJA/MEDIA
+    if tiene_dispositivo and tiene_palabra_neutra and not tiene_problema:
+        if score_bajo >= 1:
+            prioridad = 'baja'
+            confianza = 'alta'
+        else:
+            prioridad = 'media'
+            confianza = 'media'
+        return prioridad, confianza, palabras_encontradas
+    
+    # Si tiene dispositivo + problema (ej: "mouse no funciona") = ALTA
+    if tiene_dispositivo and tiene_problema:
+        prioridad = 'alta'
+        confianza = 'alta' if score_alto >= 3 else 'media'
+        return prioridad, confianza, palabras_encontradas
+    
+    # Lógica estándar por scores
+    if score_critico >= 2:
+        prioridad = 'critica'
+        confianza = 'alta' if score_critico >= 4 else 'media'
+    elif score_alto >= 1.5:
+        # Si hay mucho score bajo, puede contrarrestar
+        if score_bajo >= 3 and score_alto < 3:
+            prioridad = 'media'
+            confianza = 'media'
+        else:
+            prioridad = 'alta'
+            confianza = 'alta' if score_alto >= 4.5 else 'media'
+    elif score_bajo >= 1.5:
+        prioridad = 'baja'
+        confianza = 'alta' if score_bajo >= 3 else 'media'
+    else:
+        prioridad = 'media'
+        confianza = 'baja'
+    
+    return prioridad, confianza, palabras_encontradas
+
 
 # Decorador personalizado para verificar permisos de ticket
 def ticket_permission_required(permission_type='view'):
@@ -165,9 +594,9 @@ def ticket_list(request):
     user = request.user
     
     # Determinar tickets base según el rol
-    # Administradores y Técnicos ven todos los tickets
-    # Usuarios solo ven sus propios tickets
-    if es_admin(user) or es_tecnico(user):
+    # Administradores, Técnicos y usuarios con permiso de ver todos los tickets ven todos
+    # Usuarios regulares solo ven sus propios tickets
+    if es_admin(user) or es_tecnico(user) or puede_ver_todos_tickets(user):
         tickets_base = Ticket.objects.all().select_related('creador', 'asignado_a')
     else:
         tickets_base = Ticket.objects.filter(creador=user).select_related('creador', 'asignado_a')
@@ -194,10 +623,10 @@ def ticket_list(request):
         if prioridad:
             tickets_base = tickets_base.filter(prioridad=prioridad)
         
-        # Filtro por área
-        area = form.cleaned_data.get('area_afectada')
+        # Filtro por categoría
+        area = form.cleaned_data.get('categoria')
         if area:
-            tickets_base = tickets_base.filter(area_afectada__icontains=area)
+            tickets_base = tickets_base.filter(categoria__nombre__icontains=area)
         
         # Filtro por técnico asignado
         asignado = form.cleaned_data.get('asignado_a')
@@ -224,21 +653,46 @@ def ticket_list(request):
     
     # Estadísticas para el dashboard (sobre todos los tickets del usuario, no solo la página actual)
     total_tickets = tickets_base.count()
+    pendientes_count = tickets_base.filter(estado='pendiente').count()
     asignados_count = tickets_base.filter(asignado_a__isnull=False).count()
     en_proceso_count = tickets_base.filter(estado='en_progreso').count()
     resueltos_count = tickets_base.filter(estado='resuelto').count()
     cerrados_count = tickets_base.filter(estado='cerrado').count()
     sla_excedido_count = tickets_base.filter(estado='tiempo_excedido').count()
     
+    # Tickets urgentes: prioridad alta/crítica que no están resueltos ni cerrados
+    tickets_urgentes = Ticket.objects.filter(
+        prioridad__in=['alta', 'critica'],
+        estado__in=['pendiente', 'en_progreso']
+    ).exclude(
+        estado__in=['resuelto', 'cerrado']
+    ).select_related('creador', 'asignado_a', 'categoria').order_by('-prioridad', 'fecha_creacion')[:5]
+    
+    # Permisos del usuario actual para mostrar botones en el template
+    permisos_usuario = {
+        'puede_asignar': puede_asignar_tickets(user),
+        'puede_autoasignarse': puede_autoasignarse_tickets(user),
+        'puede_cambiar_estado': puede_cambiar_estado(user),
+        'puede_ver_metricas': puede_ver_metricas(user),
+        'puede_gestionar_usuarios': puede_gestionar_usuarios(user),
+        'puede_acceder_admin': puede_acceder_admin_panel(user),
+        'es_admin': es_admin(user),
+        'es_tecnico': es_tecnico(user),
+        'puede_validar_prioridad': puede_validar_prioridad(user),
+    }
+    
     context = {
         'tickets': tickets,
         'form': form,
         'total_tickets': total_tickets,
+        'pendientes_count': pendientes_count,
         'asignados_count': asignados_count,
         'en_proceso_count': en_proceso_count,
         'resueltos_count': resueltos_count,
         'cerrados_count': cerrados_count,
         'sla_excedido_count': sla_excedido_count,
+        'tickets_urgentes': tickets_urgentes,
+        'permisos': permisos_usuario,
     }
     
     return render(request, 'tickets/ticket_list.html', context)
@@ -246,14 +700,57 @@ def ticket_list(request):
 # Vista para crear nuevos tickets en el sistema
 @login_required
 def ticket_create(request):
+    from .services import notificar_validadores_ticket_critico
+    
+    usuario_es_admin = es_admin(request.user)
+    
     if request.method == 'POST':
         form = TicketForm(request.POST, request.FILES)
         if form.is_valid():
             # Crear el ticket
             ticket = form.save(commit=False)
             ticket.creador = request.user
-            # Asignar prioridad por defecto 'media' si el usuario no es admin
-            ticket.prioridad = 'media'
+            
+            # Detectar prioridad automática basada en palabras clave y tipo de solicitud
+            prioridad_detectada, confianza, palabras = detectar_prioridad_automatica(
+                form.cleaned_data.get('titulo', ''),
+                form.cleaned_data.get('descripcion', ''),
+                form.cleaned_data.get('tipo', None)  # Pasar el tipo de solicitud
+            )
+            
+            # Si es admin, puede establecer prioridad y técnico manualmente
+            if usuario_es_admin:
+                prioridad = request.POST.get('prioridad')
+                tecnico_id = request.POST.get('asignar_a')
+                
+                if prioridad:
+                    ticket.prioridad = prioridad
+                    # Si admin establece manualmente, se considera validada
+                    ticket.prioridad_validada = True
+                    ticket.validado_por = request.user
+                    ticket.fecha_validacion = timezone.now()
+                else:
+                    ticket.prioridad = 'media'
+                    
+                # Asignar técnico si se seleccionó
+                if tecnico_id:
+                    tecnico = User.objects.filter(id=tecnico_id, groups__name=GRUPO_TECNICO).first()
+                    if tecnico:
+                        ticket.asignado_a = tecnico
+                        ticket.fecha_asignacion = timezone.now()
+            else:
+                # Usuario normal: usar detección automática
+                ticket.prioridad_auto_detectada = prioridad_detectada
+                
+                # Si se detectó prioridad alta o crítica, requiere validación
+                if prioridad_detectada in ['critica', 'alta']:
+                    ticket.prioridad = prioridad_detectada  # Asignar temporalmente
+                    ticket.prioridad_validada = False  # Marcar como pendiente de validación
+                    logger.info(f"Ticket detectado con prioridad {prioridad_detectada} (confianza: {confianza}). Palabras: {palabras}")
+                else:
+                    # Prioridad media o baja no requiere validación
+                    ticket.prioridad = prioridad_detectada
+                    ticket.prioridad_validada = True
             
             # Guardar primero para que tenga fecha_creacion
             ticket.save()
@@ -264,7 +761,8 @@ def ticket_create(request):
             
             # Enviar notificación a administradores cuando se crea un ticket
             from .models import Notificacion
-            prioridad_notif = 'critica' if ticket.prioridad == 'urgente' else 'alta' if ticket.prioridad == 'alta' else 'media'
+            # Usar la prioridad real del ticket para la notificación
+            prioridad_notif = ticket.prioridad  # Puede ser: critica, alta, media, baja
             administradores = User.objects.filter(groups__name=GRUPO_ADMINISTRADOR)
             for admin in administradores:
                 crear_notificacion_completa(
@@ -274,8 +772,42 @@ def ticket_create(request):
                     prioridad=prioridad_notif
                 )
             
+            # Si se detectó prioridad crítica/alta y no está validada, notificar a validadores
+            if not ticket.prioridad_validada and ticket.prioridad_auto_detectada in ['critica', 'alta']:
+                try:
+                    notificar_validadores_ticket_critico(ticket, palabras)
+                except Exception as e:
+                    logger.error(f'Error al notificar validadores: {str(e)}')
+            
+            # Si se asignó un técnico, notificarlo
+            if ticket.asignado_a:
+                try:
+                    nombre_tecnico = ticket.asignado_a.get_full_name() or ticket.asignado_a.username
+                    
+                    # Notificar al TÉCNICO: "Te asignaron un ticket"
+                    crear_notificacion_completa(
+                        usuario=ticket.asignado_a,
+                        ticket=ticket,
+                        tipo='ticket_asignado',
+                        prioridad=prioridad_notif
+                    )
+                    
+                    # Notificar al CREADOR: "Tu ticket fue asignado a [técnico]"
+                    # Solo si el creador no es el mismo técnico
+                    if ticket.creador != ticket.asignado_a:
+                        crear_notificacion_completa(
+                            usuario=ticket.creador,
+                            ticket=ticket,
+                            tipo='tu_ticket_asignado',
+                            prioridad=prioridad_notif,
+                            datos_extra={'nombre_tecnico': nombre_tecnico}
+                        )
+                except Exception as e:
+                    logger.error(f'Error al notificar técnico asignado: {str(e)}')
+            
             # Logging
-            logger.info(f'Ticket #{ticket.id} creado por {request.user.username}: "{ticket.titulo}"')
+            asignacion_info = f', asignado a {ticket.asignado_a.username}' if ticket.asignado_a else ''
+            logger.info(f'Ticket #{ticket.id} creado por {request.user.username}: "{ticket.titulo}"{asignacion_info}')
             
             # Registrar en el historial
             HistorialEstado.objects.create(
@@ -299,11 +831,26 @@ def ticket_create(request):
     else:
         form = TicketForm()
     
-    return render(request, 'tickets/ticket_form.html', {'form': form})
+    # Si es admin, obtener lista de técnicos para asignación
+    tecnicos = None
+    if usuario_es_admin:
+        tecnicos = User.objects.filter(groups__name=GRUPO_TECNICO, is_active=True).order_by('first_name', 'username')
+    
+    return render(request, 'tickets/ticket_form.html', {
+        'form': form,
+        'es_admin': usuario_es_admin,
+        'tecnicos': tecnicos,
+        'prioridades': Ticket.PRIORIDADES,
+    })
 
-# Vista para asignar tickets a técnicos (solo administradores)
-@user_passes_test(es_admin)
+# Vista para asignar tickets a técnicos (administradores o usuarios con permiso)
+@login_required
 def asignar_ticket(request, ticket_id):
+    # Verificar permiso para asignar tickets
+    if not puede_asignar_tickets(request.user):
+        messages.error(request, 'No tienes permiso para asignar tickets.')
+        return redirect('ticket_list')
+    
     ticket = get_object_or_404(Ticket, id=ticket_id)
     if request.method == 'POST':
         # Asigna el ticket al técnico seleccionado
@@ -329,13 +876,29 @@ def asignar_ticket(request, ticket_id):
         
         # Enviar notificación al técnico asignado (con manejo de error si no tiene perfil)
         try:
-            prioridad_notif = 'critica' if ticket.prioridad == 'urgente' else 'alta' if ticket.prioridad == 'alta' else 'media'
+            # Usar la prioridad real del ticket para la notificación
+            prioridad_notif = ticket.prioridad  # Puede ser: critica, alta, media, baja
+            
+            # Obtener nombre del técnico para las notificaciones
+            nombre_tecnico = tecnico.get_full_name() or tecnico.username
+            
+            # Notificar al TÉCNICO: "Te asignaron un ticket"
             crear_notificacion_completa(
                 usuario=tecnico,
                 ticket=ticket,
                 tipo='ticket_asignado',
                 prioridad=prioridad_notif
             )
+            
+            # Notificar al CREADOR: "Tu ticket fue asignado a [técnico]"
+            if ticket.creador != tecnico:  # No notificar si el técnico es el creador
+                crear_notificacion_completa(
+                    usuario=ticket.creador,
+                    ticket=ticket,
+                    tipo='tu_ticket_asignado',
+                    prioridad=prioridad_notif,
+                    datos_extra={'nombre_tecnico': nombre_tecnico}
+                )
         except Exception as e:
             logger.error(f'Error al enviar notificación a {tecnico.username}: {str(e)}')
             messages.warning(
@@ -379,34 +942,213 @@ def asignar_ticket(request, ticket_id):
         'tecnicos': tecnicos
     })
 
-# Vista para que los técnicos cambien el estado de los tickets asignados
+
+# Vista para que los técnicos se autoasignen tickets sin asignar
+@login_required
+def autoasignar_ticket(request, ticket_id):
+    """Permite a un técnico autoasignarse un ticket (incluso si está asignado a otro técnico)"""
+    # Verificar que el usuario es técnico
+    if not puede_autoasignarse_tickets(request.user):
+        messages.error(request, 'Solo los técnicos pueden autoasignarse tickets.')
+        return redirect('ticket_list')
+    
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    
+    # Verificar que el ticket no esté ya asignado a este mismo técnico
+    if ticket.asignado_a == request.user:
+        messages.info(request, 'Este ticket ya está asignado a ti.')
+        return redirect('ticket_detalle', ticket_id=ticket.id)
+    
+    # Verificar que el técnico no sea el creador del ticket
+    if ticket.creador == request.user:
+        messages.error(request, 'No puedes autoasignarte un ticket que tú mismo creaste.')
+        return redirect('ticket_detalle', ticket_id=ticket.id)
+    
+    # Guardar información del técnico anterior (si existe) para el historial
+    tecnico_anterior = ticket.asignado_a
+    
+    if request.method == 'POST':
+        # Autoasignar el ticket al técnico actual
+        ticket.asignado_a = request.user
+        
+        # Registrar fecha de asignación (solo si es primera asignación)
+        if not ticket.fecha_asignacion:
+            ticket.fecha_asignacion = timezone.now()
+        
+        # Calcular tiempo límite SLA por defecto según prioridad
+        ticket.tiempo_limite_resolucion = ticket.calcular_tiempo_limite_sla()
+        
+        ticket.save()
+        
+        # Registrar en historial con información de reasignación si aplica
+        if tecnico_anterior:
+            nombre_anterior = tecnico_anterior.first_name or tecnico_anterior.username
+            comentario_historial = f'Ticket reasignado de {nombre_anterior} a {request.user.first_name or request.user.username} (autoasignación)'
+        else:
+            comentario_historial = f'Ticket autoasignado por {request.user.first_name or request.user.username}'
+        
+        HistorialEstado.objects.create(
+            ticket=ticket,
+            cambiado_por=request.user,
+            estado_anterior=ticket.estado,
+            estado_nuevo=ticket.estado,
+            comentario=comentario_historial
+        )
+        
+        # Obtener nombre del técnico actual para las notificaciones
+        nombre_tecnico_actual = request.user.get_full_name() or request.user.username
+        nombre_tecnico_anterior = (tecnico_anterior.get_full_name() or tecnico_anterior.username) if tecnico_anterior else None
+        
+        # Notificar al CREADOR del ticket: "Tu ticket fue asignado a [técnico]"
+        try:
+            crear_notificacion_completa(
+                usuario=ticket.creador,
+                ticket=ticket,
+                tipo='tu_ticket_asignado',
+                prioridad=ticket.prioridad,
+                datos_extra={
+                    'nombre_tecnico': nombre_tecnico_actual,
+                    'nombre_anterior': nombre_tecnico_anterior
+                }
+            )
+        except Exception as e:
+            logger.error(f'Error al notificar autoasignación al creador: {str(e)}')
+        
+        # Si había un técnico anterior, notificarle que el ticket fue reasignado
+        if tecnico_anterior:
+            try:
+                crear_notificacion_completa(
+                    usuario=tecnico_anterior,
+                    ticket=ticket,
+                    tipo='ticket_reasignado',
+                    prioridad=ticket.prioridad,
+                    datos_extra={
+                        'nombre_tecnico': nombre_tecnico_actual,
+                        'nombre_anterior': nombre_tecnico_anterior
+                    }
+                )
+            except Exception as e:
+                logger.error(f'Error al notificar al técnico anterior: {str(e)}')
+        
+        # Logging
+        reasignacion_info = f' (reasignado desde {tecnico_anterior.username})' if tecnico_anterior else ''
+        logger.info(
+            f'Ticket #{ticket.id} autoasignado por {request.user.username}{reasignacion_info}. '
+            f'SLA: {ticket.tiempo_limite_resolucion}'
+        )
+        
+        messages.success(request, f'✓ Te has autoasignado el ticket #{ticket.id} exitosamente.')
+        return redirect('ticket_detalle', ticket_id=ticket.id)
+    
+    # Si es GET, mostrar confirmación
+    # Pasar información del técnico anterior para mostrar advertencia
+    nombre_tecnico_anterior = None
+    if tecnico_anterior:
+        nombre_tecnico_anterior = tecnico_anterior.first_name or tecnico_anterior.username
+        if tecnico_anterior.last_name:
+            nombre_tecnico_anterior += f" {tecnico_anterior.last_name}"
+    
+    return render(request, 'tickets/autoasignar_ticket.html', {
+        'ticket': ticket,
+        'tecnico_anterior': tecnico_anterior,
+        'nombre_tecnico_anterior': nombre_tecnico_anterior,
+    })
+
+
+def _obtener_mensaje_contexto_cambio(ticket, es_admin, es_tecnico, es_asignado, es_creador):
+    """Genera un mensaje contextual sobre qué puede hacer el usuario con el ticket."""
+    estado = ticket.estado
+    
+    if es_admin:
+        return "Como administrador, tienes control total sobre el estado de este ticket."
+    
+    if es_tecnico and es_asignado:
+        if estado == 'pendiente':
+            return "Puedes comenzar a trabajar en este ticket marcándolo como 'En Progreso'."
+        elif estado == 'en_progreso':
+            return "Cuando termines de resolver el problema, marca el ticket como 'Resuelto'."
+        elif estado == 'tiempo_excedido':
+            return "Este ticket excedió su tiempo de respuesta. Puedes retomarlo y comenzar a trabajar."
+        else:
+            return "Actualiza el estado según el progreso del ticket."
+    
+    if es_tecnico and not es_asignado:
+        if estado == 'pendiente':
+            return "Este ticket está pendiente y sin técnico asignado. Puedes tomarlo."
+        else:
+            return "Este ticket está asignado a otro técnico."
+    
+    if es_creador:
+        if estado == 'resuelto':
+            return "El técnico marcó tu ticket como resuelto. Por favor confirma si el problema fue solucionado."
+        else:
+            return "Puedes ver el progreso de tu ticket."
+    
+    return "Actualiza el estado de progreso de este ticket."
+
+
+# Vista para cambiar el estado de los tickets
+# Flujo: Pendiente → En Progreso → Resuelto → Cerrado
 @login_required
 def cambiar_estado(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
     
-    # Verifica permisos
-    if ticket.asignado_a != request.user and not es_admin(request.user):
-        return HttpResponseForbidden("No tienes permiso para cambiar este ticket.")
+    usuario_es_admin = es_admin(request.user)
+    usuario_es_tecnico = es_tecnico(request.user)
+    usuario_es_creador = ticket.creador == request.user
+    usuario_es_asignado = ticket.asignado_a == request.user
+    
+    # Determinar qué transiciones puede hacer este usuario
+    # - Admin: todas las transiciones
+    # - Técnico asignado: pendiente→en_progreso, en_progreso→resuelto/pendiente
+    # - Creador: resuelto→cerrado (confirmar solución), resuelto→en_progreso (no solucionado)
+    
+    transiciones_base = ticket.obtener_transiciones_permitidas()
+    
+    if usuario_es_admin:
+        # Admin puede hacer todas las transiciones + reabrir desde cerrado
+        transiciones_permitidas = transiciones_base.copy()
+        if ticket.estado == 'cerrado':
+            transiciones_permitidas = ['pendiente']  # Permitir reabrir
+    elif usuario_es_tecnico and (usuario_es_asignado or not ticket.asignado_a):
+        # Técnico: puede tomar tickets (pendiente→en_progreso) y resolver (en_progreso→resuelto)
+        if ticket.estado == 'pendiente':
+            transiciones_permitidas = ['en_progreso']
+        elif ticket.estado == 'en_progreso':
+            transiciones_permitidas = ['resuelto', 'pendiente']
+        elif ticket.estado == 'tiempo_excedido':
+            transiciones_permitidas = ['pendiente', 'en_progreso']
+        else:
+            transiciones_permitidas = []
+    elif usuario_es_creador:
+        # Creador: puede confirmar solución (resuelto→cerrado) o reabrir (resuelto→en_progreso)
+        if ticket.estado == 'resuelto':
+            transiciones_permitidas = ['cerrado', 'en_progreso']
+        else:
+            transiciones_permitidas = []
+    elif puede_cambiar_estado(request.user):
+        # Usuario con permiso especial
+        transiciones_permitidas = transiciones_base
+    else:
+        transiciones_permitidas = []
+    
+    # Si no tiene permisos para ninguna transición
+    if not transiciones_permitidas:
+        messages.warning(request, 'No puedes cambiar el estado de este ticket en su estado actual.')
+        return redirect('ticket_detalle', ticket_id=ticket.id)
     
     if request.method == 'POST':
         nuevo_estado = request.POST.get('estado')
         comentario = request.POST.get('comentario', '').strip()
         
         if nuevo_estado and nuevo_estado != ticket.estado:
-            # Validar transición de estado
-            if not ticket.puede_cambiar_estado_a(nuevo_estado):
+            # Validar que el usuario puede hacer esta transición específica
+            if nuevo_estado not in transiciones_permitidas:
                 messages.error(
                     request, 
-                    f'No se puede cambiar el ticket de "{ticket.estado}" a "{nuevo_estado}". '
-                    f'Transiciones permitidas: {", ".join(ticket.obtener_transiciones_permitidas()) or "Ninguna"}'
+                    f'No tienes permiso para cambiar el ticket a "{dict(Ticket.ESTADOS).get(nuevo_estado, nuevo_estado)}".'
                 )
-                return render(request, 'tickets/cambiar_estado.html', {
-                    'ticket': ticket,
-                    'estados': [
-                        (estado, dict(Ticket.ESTADOS).get(estado, estado)) 
-                        for estado in ticket.obtener_transiciones_permitidas()
-                    ]
-                })
+                return redirect('ticket_detalle', ticket_id=ticket.id)
             
             # Guarda el estado anterior
             estado_anterior = ticket.estado
@@ -426,31 +1168,81 @@ def cambiar_estado(request, ticket_id):
             
             ticket.save()
             
+            # Datos extra para las notificaciones
+            nombre_quien_cambio = request.user.get_full_name() or request.user.username
+            datos_notificacion = {
+                'estado_anterior': dict(Ticket.ESTADOS).get(estado_anterior, estado_anterior),
+                'estado_nuevo': dict(Ticket.ESTADOS).get(nuevo_estado, nuevo_estado),
+                'cambiado_por': nombre_quien_cambio
+            }
+            
             # Enviar notificaciones según el cambio de estado
+            # SIEMPRE usar la prioridad real del ticket
+            prioridad_real = ticket.prioridad
+            
             if nuevo_estado == 'resuelto':
                 # Notificar al creador que el ticket fue resuelto
                 crear_notificacion_completa(
                     usuario=ticket.creador,
                     ticket=ticket,
                     tipo='ticket_resuelto',
-                    prioridad='media'
+                    prioridad=prioridad_real,
+                    datos_extra=datos_notificacion
                 )
             elif nuevo_estado == 'cerrado':
-                # Notificar al creador que el ticket fue cerrado
-                crear_notificacion_completa(
-                    usuario=ticket.creador,
-                    ticket=ticket,
-                    tipo='ticket_cerrado',
-                    prioridad='baja'
-                )
-            elif nuevo_estado in ['pendiente', 'en_progreso']:
-                # Si se reabre, notificar al técnico
-                if ticket.asignado_a:
+                # Si el creador cierra el ticket (confirma solución), notificar al técnico
+                if usuario_es_creador and ticket.asignado_a:
                     crear_notificacion_completa(
                         usuario=ticket.asignado_a,
                         ticket=ticket,
-                        tipo='estado_cambio',
-                        prioridad='alta'
+                        tipo='ticket_cerrado_exito',
+                        prioridad=prioridad_real,
+                        datos_extra=datos_notificacion
+                    )
+                else:
+                    # Notificar al creador que el ticket fue cerrado (por admin/técnico)
+                    crear_notificacion_completa(
+                        usuario=ticket.creador,
+                        ticket=ticket,
+                        tipo='ticket_cerrado',
+                        prioridad=prioridad_real,
+                        datos_extra=datos_notificacion
+                    )
+            elif nuevo_estado == 'en_progreso':
+                # Si el creador rechaza la solución (resuelto → en_progreso), notificar al técnico
+                if estado_anterior == 'resuelto' and usuario_es_creador and ticket.asignado_a:
+                    crear_notificacion_completa(
+                        usuario=ticket.asignado_a,
+                        ticket=ticket,
+                        tipo='solucion_rechazada',
+                        prioridad=prioridad_real,
+                        datos_extra=datos_notificacion
+                    )
+                else:
+                    # Notificar al creador que su ticket está siendo atendido
+                    crear_notificacion_completa(
+                        usuario=ticket.creador,
+                        ticket=ticket,
+                        tipo='ticket_en_progreso',
+                        prioridad=prioridad_real,
+                        datos_extra=datos_notificacion
+                    )
+            elif nuevo_estado == 'pendiente' and estado_anterior in ['resuelto', 'cerrado', 'tiempo_excedido']:
+                # Si se reabre un ticket, notificar al creador y al técnico
+                crear_notificacion_completa(
+                    usuario=ticket.creador,
+                    ticket=ticket,
+                    tipo='ticket_reabierto',
+                    prioridad=prioridad_real,
+                    datos_extra=datos_notificacion
+                )
+                if ticket.asignado_a and ticket.asignado_a != ticket.creador:
+                    crear_notificacion_completa(
+                        usuario=ticket.asignado_a,
+                        ticket=ticket,
+                        tipo='ticket_reabierto',
+                        prioridad=prioridad_real,
+                        datos_extra=datos_notificacion
                     )
             
             # Logging
@@ -469,7 +1261,7 @@ def cambiar_estado(request, ticket_id):
             )
             
             # También crea un comentario para mayor visibilidad
-            mensaje_comentario = f"📋 **Cambio de estado:** {estado_anterior} → {nuevo_estado}"
+            mensaje_comentario = f"📋 **Cambio de estado:** {dict(Ticket.ESTADOS).get(estado_anterior, estado_anterior)} → {dict(Ticket.ESTADOS).get(nuevo_estado, nuevo_estado)}"
             if comentario:
                 mensaje_comentario += f"\n💬 **Comentario:** {comentario}"
             
@@ -479,20 +1271,31 @@ def cambiar_estado(request, ticket_id):
                 mensaje=mensaje_comentario
             )
             
-            messages.success(request, f'Ticket actualizado a {nuevo_estado}')
+            messages.success(request, f'Ticket actualizado a "{dict(Ticket.ESTADOS).get(nuevo_estado, nuevo_estado)}"')
         
         return redirect('ticket_detalle', ticket_id=ticket.id)
     
-    # Obtener solo estados permitidos desde el estado actual
-    transiciones_permitidas = ticket.obtener_transiciones_permitidas()
+    # Preparar estados disponibles para el template según las transiciones permitidas del usuario
     estados_disponibles = [
         (estado, dict(Ticket.ESTADOS).get(estado, estado)) 
         for estado in transiciones_permitidas
     ]
     
+    # Información adicional para el template
+    contexto_cambio = {
+        'puede_resolver': 'resuelto' in transiciones_permitidas,
+        'puede_cerrar': 'cerrado' in transiciones_permitidas,
+        'puede_reabrir': 'pendiente' in transiciones_permitidas and ticket.estado in ['resuelto', 'cerrado', 'tiempo_excedido'],
+        'es_creador': usuario_es_creador,
+        'es_tecnico_asignado': usuario_es_asignado,
+        'es_admin': usuario_es_admin,
+        'mensaje': _obtener_mensaje_contexto_cambio(ticket, usuario_es_admin, usuario_es_tecnico, usuario_es_asignado, usuario_es_creador)
+    }
+    
     return render(request, 'tickets/cambiar_estado.html', {
         'ticket': ticket,
-        'estados': estados_disponibles
+        'estados_disponibles': estados_disponibles,
+        'contexto_cambio': contexto_cambio,
     })
 
 # Vista detallada de un ticket específico con comentarios e historial
@@ -522,11 +1325,13 @@ def ticket_detalle(request, ticket_id):
 
     # Verifica los permisos para ver el ticket
     usuario_es_admin = es_admin(request.user)
+    usuario_es_tecnico = es_tecnico(request.user)
     es_tecnico_asignado = ticket.asignado_a == request.user
     es_creador = ticket.creador == request.user
 
     # Solo permitir acceso a usuarios autorizados
-    if not (usuario_es_admin or es_tecnico_asignado or es_creador):
+    # Los técnicos pueden ver TODOS los tickets (para poder tomarlos si es necesario)
+    if not (usuario_es_admin or es_tecnico_asignado or es_creador or usuario_es_tecnico):
         return HttpResponseForbidden("No tienes permiso para ver este ticket.")
 
     # Maneja la creación de nuevos comentarios
@@ -563,7 +1368,7 @@ def ticket_detalle(request, ticket_id):
                         usuario=usuario,
                         ticket=ticket,
                         tipo='ticket_comentario',
-                        prioridad='media'
+                        prioridad=ticket.prioridad  # Usar prioridad real del ticket
                     )
             
             # Procesar archivos adjuntos del comentario
@@ -579,9 +1384,31 @@ def ticket_detalle(request, ticket_id):
             return redirect('ticket_detalle', ticket_id=ticket.id)
 
     # Obtiene comentarios e historial ordenados por fecha (optimizado con select_related)
-    comentarios = ticket.comentarios.select_related('autor').prefetch_related('archivos').order_by('fecha')
-    historial = ticket.historial_estados.select_related('cambiado_por').order_by('fecha')
+    # Excluir comentarios automáticos de cambio de estado (contienen "📋 **Cambio de estado:**")
+    comentarios = ticket.comentarios.select_related('autor').prefetch_related('archivos').exclude(
+        mensaje__startswith='📋 **Cambio de estado:**'
+    ).order_by('fecha')
+    # Historial ordenado del más reciente al más antiguo
+    historial = ticket.historial_estados.select_related('cambiado_por').order_by('-fecha')
     archivos_ticket = ticket.archivos.select_related('subido_por').order_by('-fecha_subida')
+    
+    # Verificar si el técnico puede autoasignarse este ticket
+    # Puede autoasignarse si: es técnico, no es el creador, y no está asignado a él mismo
+    puede_autoasignarse = (
+        puede_autoasignarse_tickets(request.user) and 
+        ticket.creador != request.user and
+        ticket.asignado_a != request.user
+    )
+    
+    # Indicar si el ticket ya está asignado a otro técnico (para mostrar advertencia)
+    ticket_asignado_a_otro = ticket.asignado_a and ticket.asignado_a != request.user
+    
+    # Nombre del técnico asignado para el popup de advertencia
+    nombre_tecnico_asignado = None
+    if ticket_asignado_a_otro:
+        nombre_tecnico_asignado = ticket.asignado_a.first_name or ticket.asignado_a.username
+        if ticket.asignado_a.last_name:
+            nombre_tecnico_asignado += f" {ticket.asignado_a.last_name}"
     
     return render(request, 'tickets/ticket_detalle.html', {
         'ticket': ticket,
@@ -589,14 +1416,22 @@ def ticket_detalle(request, ticket_id):
         'historial': historial,
         'archivos_ticket': archivos_ticket,
         'now': timezone.now(),
+        'puede_autoasignarse': puede_autoasignarse,
+        'ticket_asignado_a_otro': ticket_asignado_a_otro,
+        'nombre_tecnico_asignado': nombre_tecnico_asignado,
+        'es_tecnico': es_tecnico(request.user),
     })
 
 
 # Vista de métricas y estadísticas del sistema
 @login_required
-@user_passes_test(es_admin)
 def metricas(request):
     """Vista completa de métricas y KPIs del sistema de tickets"""
+    
+    # Verificar permiso para ver métricas
+    if not puede_ver_metricas(request.user):
+        messages.error(request, 'No tienes permiso para ver las métricas.')
+        return redirect('ticket_list')
     
     # Verificar y actualizar SLA automáticamente
     verificar_y_actualizar_sla()
@@ -698,8 +1533,10 @@ def metricas(request):
     for tipo in tickets_por_tipo:
         tipo['porcentaje'] = round((tipo['total'] / tickets_totales * 100) if tickets_totales > 0 else 0, 1)
     
-    # Tickets por área afectada con porcentaje calculado
-    tickets_por_area = list(tickets_periodo.values('area_afectada').annotate(
+    # Tickets por categoría con porcentaje calculado
+    tickets_por_area = list(tickets_periodo.filter(
+        categoria__isnull=False
+    ).values('categoria__nombre').annotate(
         total=Count('id')
     ).order_by('-total')[:TOP_AREAS_LIMIT])
     
@@ -808,7 +1645,7 @@ def mis_tickets(request):
     
     # Estadísticas del usuario
     total_tickets = tickets_usuario.count()
-    tickets_abiertos = tickets_usuario.filter(estado__in=['abierto', 'en_progreso']).count()
+    tickets_abiertos = tickets_usuario.filter(estado__in=['pendiente', 'en_progreso']).count()
     tickets_cerrados = tickets_usuario.filter(estado__in=['resuelto', 'cerrado']).count()
     tickets_sin_calificar = tickets_usuario.filter(
         estado__in=['resuelto', 'cerrado'],
@@ -899,10 +1736,22 @@ def mis_asignaciones(request):
 # PANEL DE ADMINISTRACIÓN DE USUARIOS
 # ============================================
 
+def puede_acceder_admin_panel(user):
+    """Verifica si el usuario puede acceder al panel de administración"""
+    if es_admin(user):
+        return True
+    # También permitir si tiene algún permiso de administración
+    return puede_gestionar_usuarios(user) or puede_crear_roles(user)
+
+
 @login_required
-@user_passes_test(es_admin)
 def admin_panel(request):
     """Panel principal de administración"""
+    # Verificar acceso al panel
+    if not puede_acceder_admin_panel(request.user):
+        messages.error(request, 'No tienes permiso para acceder al panel de administración.')
+        return redirect('ticket_list')
+    
     # Estadísticas generales
     total_usuarios = User.objects.filter(is_active=True).count()
     total_roles = RolPersonalizado.objects.filter(activo=True).count()
@@ -922,9 +1771,13 @@ def admin_panel(request):
 
 
 @login_required
-@user_passes_test(es_admin)
 def admin_usuarios(request):
     """Lista y gestión de usuarios"""
+    # Verificar permiso
+    if not puede_gestionar_usuarios(request.user):
+        messages.error(request, 'No tienes permiso para gestionar usuarios.')
+        return redirect('ticket_list')
+    
     usuarios = User.objects.all().select_related('perfilusuario').prefetch_related('groups').order_by('-date_joined')
     
     # Filtros
@@ -968,9 +1821,13 @@ def admin_usuarios(request):
 
 
 @login_required
-@user_passes_test(es_admin)
 def admin_crear_usuario(request):
     """Crear nuevo usuario manualmente"""
+    # Verificar permiso
+    if not puede_gestionar_usuarios(request.user):
+        messages.error(request, 'No tienes permiso para crear usuarios.')
+        return redirect('ticket_list')
+    
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
@@ -982,8 +1839,15 @@ def admin_crear_usuario(request):
         telefono = request.POST.get('telefono', '')
         departamento = request.POST.get('departamento', '')
         cargo = request.POST.get('cargo', '')
-        grupo_id = request.POST.get('grupo')
-        rol_personalizado_id = request.POST.get('rol_personalizado')
+        grupo_id = request.POST.get('grupo') or None
+        rol_personalizado_id = request.POST.get('rol_personalizado') or None
+        
+        # Validar que tenga al menos un grupo o rol personalizado
+        if not grupo_id and not rol_personalizado_id:
+            messages.error(request, 'Debe seleccionar al menos un Grupo tradicional o un Rol personalizado.')
+            grupos = Group.objects.all()
+            roles = RolPersonalizado.objects.filter(activo=True)
+            return render(request, 'admin/crear_usuario.html', {'grupos': grupos, 'roles': roles})
         
         try:
             # Crear usuario
@@ -995,11 +1859,6 @@ def admin_crear_usuario(request):
                 last_name=last_name
             )
             
-            # Asignar grupo
-            if grupo_id:
-                grupo = Group.objects.get(id=grupo_id)
-                user.groups.add(grupo)
-            
             # Crear perfil
             perfil = PerfilUsuario.objects.create(
                 user=user,
@@ -1009,10 +1868,22 @@ def admin_crear_usuario(request):
                 creado_por=request.user
             )
             
-            # Asignar rol personalizado
+            # Si hay rol personalizado, usarlo para determinar el grupo
             if rol_personalizado_id:
-                perfil.rol_personalizado_id = rol_personalizado_id
+                rol = RolPersonalizado.objects.get(id=rol_personalizado_id)
+                perfil.rol_personalizado = rol
                 perfil.save()
+                
+                # Crear o obtener grupo con el nombre del rol y asignarlo
+                grupo_rol, created = Group.objects.get_or_create(name=rol.nombre)
+                user.groups.clear()
+                user.groups.add(grupo_rol)
+                
+                logger.info(f'Usuario {username} asignado al grupo del rol: {rol.nombre}')
+            elif grupo_id:
+                # Si no hay rol personalizado pero sí grupo tradicional
+                grupo = Group.objects.get(id=grupo_id)
+                user.groups.add(grupo)
             
             logger.info(f'Usuario {username} creado manualmente por {request.user.username}')
             messages.success(request, f'Usuario {username} creado exitosamente.')
@@ -1035,9 +1906,13 @@ def admin_crear_usuario(request):
 
 
 @login_required
-@user_passes_test(es_admin)
 def admin_editar_usuario(request, user_id):
     """Editar usuario existente"""
+    # Verificar permiso
+    if not puede_gestionar_usuarios(request.user):
+        messages.error(request, 'No tienes permiso para editar usuarios.')
+        return redirect('ticket_list')
+    
     usuario = get_object_or_404(User, id=user_id)
     
     # Crear perfil si no existe
@@ -1059,19 +1934,44 @@ def admin_editar_usuario(request, user_id):
         perfil.departamento = request.POST.get('departamento', '')
         perfil.cargo = request.POST.get('cargo', '')
         
-        # Actualizar grupo
-        grupo_id = request.POST.get('grupo')
-        if grupo_id:
-            usuario.groups.clear()
-            grupo = Group.objects.get(id=grupo_id)
-            usuario.groups.add(grupo)
+        # Actualizar rol personalizado y grupo
+        rol_personalizado_id = request.POST.get('rol_personalizado') or None
+        grupo_id = request.POST.get('grupo') or None
         
-        # Actualizar rol personalizado
-        rol_personalizado_id = request.POST.get('rol_personalizado')
+        # Validar que tenga al menos un grupo o rol personalizado
+        if not grupo_id and not rol_personalizado_id:
+            messages.error(request, 'Debe seleccionar al menos un Grupo tradicional o un Rol personalizado.')
+            grupos = Group.objects.all()
+            roles = RolPersonalizado.objects.filter(activo=True)
+            grupo_actual = usuario.groups.first()
+            return render(request, 'admin/editar_usuario.html', {
+                'usuario': usuario,
+                'perfil': perfil,
+                'grupos': grupos,
+                'roles': roles,
+                'grupo_actual': grupo_actual,
+            })
+        
         if rol_personalizado_id:
-            perfil.rol_personalizado_id = rol_personalizado_id
+            # Si hay rol personalizado, usarlo para el grupo
+            rol = RolPersonalizado.objects.get(id=rol_personalizado_id)
+            perfil.rol_personalizado = rol
+            
+            # Crear o obtener grupo con el nombre del rol y asignarlo
+            grupo_rol, created = Group.objects.get_or_create(name=rol.nombre)
+            usuario.groups.clear()
+            usuario.groups.add(grupo_rol)
+            
+            logger.info(f'Usuario {usuario.username} asignado al grupo del rol: {rol.nombre}')
         else:
+            # Si no hay rol personalizado
             perfil.rol_personalizado = None
+            
+            # Usar grupo tradicional si se especificó
+            if grupo_id:
+                usuario.groups.clear()
+                grupo = Group.objects.get(id=grupo_id)
+                usuario.groups.add(grupo)
         
         perfil.save()
         
@@ -1096,9 +1996,13 @@ def admin_editar_usuario(request, user_id):
 
 
 @login_required
-@user_passes_test(es_admin)
 def admin_toggle_usuario(request, user_id):
     """Activar/Desactivar usuario"""
+    # Verificar permiso
+    if not puede_gestionar_usuarios(request.user):
+        messages.error(request, 'No tienes permiso para gestionar usuarios.')
+        return redirect('ticket_list')
+    
     if request.method == 'POST':
         usuario = get_object_or_404(User, id=user_id)
         
@@ -1123,9 +2027,13 @@ def admin_toggle_usuario(request, user_id):
 
 
 @login_required
-@user_passes_test(es_admin)
 def admin_eliminar_usuario(request, user_id):
     """Eliminar usuario (con confirmación)"""
+    # Verificar permiso
+    if not puede_gestionar_usuarios(request.user):
+        messages.error(request, 'No tienes permiso para eliminar usuarios.')
+        return redirect('ticket_list')
+    
     if request.method == 'POST':
         usuario = get_object_or_404(User, id=user_id)
         
@@ -1154,9 +2062,13 @@ def admin_eliminar_usuario(request, user_id):
 # ============================================
 
 @login_required
-@user_passes_test(es_admin)
 def admin_roles(request):
     """Lista de roles personalizados"""
+    # Verificar permiso
+    if not puede_crear_roles(request.user):
+        messages.error(request, 'No tienes permiso para gestionar roles.')
+        return redirect('ticket_list')
+    
     roles = RolPersonalizado.objects.annotate(
         num_usuarios=Count('usuarios')
     ).order_by('nombre')
@@ -1169,35 +2081,44 @@ def admin_roles(request):
 
 
 @login_required
-@user_passes_test(es_admin)
 def admin_crear_rol(request):
     """Crear nuevo rol personalizado"""
+    # Verificar permiso
+    if not puede_crear_roles(request.user):
+        messages.error(request, 'No tienes permiso para crear roles.')
+        return redirect('ticket_list')
+    
     if request.method == 'POST':
         nombre = request.POST.get('nombre')
         descripcion = request.POST.get('descripcion', '')
         color = request.POST.get('color', '#3498db')
         
         # Permisos
-        puede_ver_metricas = request.POST.get('puede_ver_metricas') == 'on'
-        puede_ver_todos_tickets = request.POST.get('puede_ver_todos_tickets') == 'on'
-        puede_asignar_tickets = request.POST.get('puede_asignar_tickets') == 'on'
-        puede_cambiar_estado = request.POST.get('puede_cambiar_estado') == 'on'
-        puede_gestionar_usuarios = request.POST.get('puede_gestionar_usuarios') == 'on'
-        puede_crear_roles = request.POST.get('puede_crear_roles') == 'on'
+        puede_ver_metricas_val = request.POST.get('puede_ver_metricas') == 'on'
+        puede_ver_todos_tickets_val = request.POST.get('puede_ver_todos_tickets') == 'on'
+        puede_asignar_tickets_val = request.POST.get('puede_asignar_tickets') == 'on'
+        puede_cambiar_estado_val = request.POST.get('puede_cambiar_estado') == 'on'
+        puede_gestionar_usuarios_val = request.POST.get('puede_gestionar_usuarios') == 'on'
+        puede_crear_roles_val = request.POST.get('puede_crear_roles') == 'on'
+        puede_validar_prioridad_val = request.POST.get('puede_validar_prioridad') == 'on'
         
         try:
             rol = RolPersonalizado.objects.create(
                 nombre=nombre,
                 descripcion=descripcion,
                 color=color,
-                puede_ver_metricas=puede_ver_metricas,
-                puede_ver_todos_tickets=puede_ver_todos_tickets,
-                puede_asignar_tickets=puede_asignar_tickets,
-                puede_cambiar_estado=puede_cambiar_estado,
-                puede_gestionar_usuarios=puede_gestionar_usuarios,
-                puede_crear_roles=puede_crear_roles,
+                puede_ver_metricas=puede_ver_metricas_val,
+                puede_ver_todos_tickets=puede_ver_todos_tickets_val,
+                puede_asignar_tickets=puede_asignar_tickets_val,
+                puede_cambiar_estado=puede_cambiar_estado_val,
+                puede_gestionar_usuarios=puede_gestionar_usuarios_val,
+                puede_crear_roles=puede_crear_roles_val,
+                puede_validar_prioridad=puede_validar_prioridad_val,
                 creado_por=request.user
             )
+            
+            # Crear el grupo de Django correspondiente al rol
+            Group.objects.get_or_create(name=nombre)
             
             logger.info(f'Rol {nombre} creado por {request.user.username}')
             messages.success(request, f'Rol {nombre} creado exitosamente.')
@@ -1211,10 +2132,15 @@ def admin_crear_rol(request):
 
 
 @login_required
-@user_passes_test(es_admin)
 def admin_editar_rol(request, rol_id):
     """Editar rol personalizado"""
+    # Verificar permiso
+    if not puede_crear_roles(request.user):
+        messages.error(request, 'No tienes permiso para editar roles.')
+        return redirect('ticket_list')
+    
     rol = get_object_or_404(RolPersonalizado, id=rol_id)
+    nombre_anterior = rol.nombre
     
     if request.method == 'POST':
         rol.nombre = request.POST.get('nombre')
@@ -1228,9 +2154,19 @@ def admin_editar_rol(request, rol_id):
         rol.puede_cambiar_estado = request.POST.get('puede_cambiar_estado') == 'on'
         rol.puede_gestionar_usuarios = request.POST.get('puede_gestionar_usuarios') == 'on'
         rol.puede_crear_roles = request.POST.get('puede_crear_roles') == 'on'
+        rol.puede_validar_prioridad = request.POST.get('puede_validar_prioridad') == 'on'
         rol.activo = request.POST.get('activo') == 'on'
         
         rol.save()
+        
+        # Si cambió el nombre, actualizar el grupo de Django
+        if nombre_anterior != rol.nombre:
+            try:
+                grupo_anterior = Group.objects.get(name=nombre_anterior)
+                grupo_anterior.name = rol.nombre
+                grupo_anterior.save()
+            except Group.DoesNotExist:
+                Group.objects.get_or_create(name=rol.nombre)
         
         logger.info(f'Rol {rol.nombre} actualizado por {request.user.username}')
         messages.success(request, f'Rol {rol.nombre} actualizado exitosamente.')
@@ -1244,9 +2180,33 @@ def admin_editar_rol(request, rol_id):
 
 
 @login_required
-@user_passes_test(es_admin)
+def admin_toggle_rol(request, rol_id):
+    """Activar/Desactivar rol personalizado"""
+    # Verificar permiso
+    if not puede_crear_roles(request.user):
+        messages.error(request, 'No tienes permiso para gestionar roles.')
+        return redirect('ticket_list')
+    
+    if request.method == 'POST':
+        rol = get_object_or_404(RolPersonalizado, id=rol_id)
+        rol.activo = not rol.activo
+        rol.save()
+        
+        estado = 'activado' if rol.activo else 'desactivado'
+        logger.info(f'Rol {rol.nombre} {estado} por {request.user.username}')
+        messages.success(request, f'Rol {rol.nombre} {estado} exitosamente.')
+    
+    return redirect('admin_roles')
+
+
+@login_required
 def admin_eliminar_rol(request, rol_id):
     """Eliminar rol personalizado"""
+    # Verificar permiso
+    if not puede_crear_roles(request.user):
+        messages.error(request, 'No tienes permiso para eliminar roles.')
+        return redirect('ticket_list')
+    
     if request.method == 'POST':
         rol = get_object_or_404(RolPersonalizado, id=rol_id)
         
@@ -1256,6 +2216,14 @@ def admin_eliminar_rol(request, rol_id):
             return redirect('admin_roles')
         
         nombre = rol.nombre
+        
+        # Eliminar también el grupo de Django correspondiente
+        try:
+            grupo = Group.objects.get(name=nombre)
+            grupo.delete()
+        except Group.DoesNotExist:
+            pass
+        
         rol.delete()
         
         logger.warning(f'Rol {nombre} eliminado por {request.user.username}')
@@ -1514,11 +2482,12 @@ def lista_notificaciones(request):
         
         context = {
             'notificaciones': page_obj,
+            'page_obj': page_obj,  # Para paginación en template
             'paginator': paginator,
             'page_number': page_number,
             'total_notificaciones': notificaciones.count(),
             'tipos_notificacion': Notificacion.TIPOS_NOTIFICACION,
-            'prioridades': Notificacion.PRIORIDADES,
+            'prioridades': Ticket.PRIORIDADES,  # Usar PRIORIDADES de Ticket
             'tipo_filtro': tipo_filtro,
             'prioridad_filtro': prioridad_filtro,
             'leida_filtro': leida_filtro,
@@ -1875,3 +2844,620 @@ def admin_eliminar_subcategoria(request, subcategoria_id):
         messages.error(request, 'Error al eliminar la subcategoría.')
     
     return redirect('admin_subcategorias')
+
+
+# ============================================
+# PÁGINA DE PREGUNTAS FRECUENTES (FAQs) - DINÁMICO
+# ============================================
+
+@login_required
+def faqs(request):
+    """
+    Vista para mostrar las preguntas frecuentes del sistema.
+    Lee las FAQs desde la base de datos.
+    """
+    from .models import CategoriaFAQ, PreguntaFAQ, BusquedaFAQ
+    from django.db.models import Prefetch
+    
+    busqueda = request.GET.get('q', '').strip()
+    
+    # Obtener categorías activas con sus preguntas activas
+    categorias = CategoriaFAQ.objects.filter(activa=True).prefetch_related(
+        Prefetch(
+            'preguntas',
+            queryset=PreguntaFAQ.objects.filter(activa=True).order_by('orden')
+        )
+    ).order_by('orden')
+    
+    # Si hay búsqueda, filtrar
+    if busqueda:
+        from django.db.models import Q
+        
+        # Buscar en preguntas y respuestas
+        preguntas_encontradas = PreguntaFAQ.objects.filter(
+            activa=True,
+            categoria__activa=True
+        ).filter(
+            Q(pregunta__icontains=busqueda) | Q(respuesta__icontains=busqueda)
+        ).select_related('categoria').order_by('categoria__orden', 'orden')
+        
+        # Agrupar por categoría
+        categorias_dict = {}
+        for pregunta in preguntas_encontradas:
+            cat_id = pregunta.categoria.id
+            if cat_id not in categorias_dict:
+                categorias_dict[cat_id] = {
+                    'categoria': pregunta.categoria,
+                    'preguntas': []
+                }
+            categorias_dict[cat_id]['preguntas'].append(pregunta)
+        
+        cantidad_resultados = preguntas_encontradas.count()
+        
+        # Registrar búsqueda
+        BusquedaFAQ.objects.create(
+            termino=busqueda[:200],
+            usuario=request.user if request.user.is_authenticated else None,
+            encontro_resultados=cantidad_resultados > 0,
+            cantidad_resultados=cantidad_resultados
+        )
+        
+        context = {
+            'categorias_busqueda': categorias_dict.values(),
+            'busqueda': busqueda,
+            'es_busqueda': True,
+        }
+    else:
+        context = {
+            'categorias': categorias,
+            'busqueda': '',
+            'es_busqueda': False,
+        }
+    
+    return render(request, 'tickets/faqs.html', context)
+
+
+# ============================================
+# ADMINISTRACIÓN DE FAQs
+# ============================================
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_faqs(request):
+    """Vista principal de administración de FAQs"""
+    from .models import CategoriaFAQ, PreguntaFAQ, BusquedaFAQ
+    from django.db.models import Count, Q
+    from django.db.models.functions import TruncDate
+    
+    # Obtener todas las categorías con conteo de preguntas
+    categorias = CategoriaFAQ.objects.annotate(
+        total_preguntas=Count('preguntas'),
+        preguntas_activas=Count('preguntas', filter=Q(preguntas__activa=True))
+    ).order_by('orden')
+    
+    # Estadísticas generales
+    total_categorias = CategoriaFAQ.objects.count()
+    total_preguntas = PreguntaFAQ.objects.count()
+    total_preguntas_activas = PreguntaFAQ.objects.filter(activa=True).count()
+    
+    # Búsquedas recientes (últimas 50)
+    busquedas_recientes = BusquedaFAQ.objects.select_related('usuario')[:50]
+    
+    # Términos más buscados (últimos 30 días)
+    from datetime import timedelta
+    hace_30_dias = timezone.now() - timedelta(days=30)
+    terminos_populares = BusquedaFAQ.objects.filter(
+        fecha__gte=hace_30_dias
+    ).values('termino').annotate(
+        total=Count('id'),
+        sin_resultados=Count('id', filter=Q(encontro_resultados=False))
+    ).order_by('-total')[:15]
+    
+    # Búsquedas sin resultados (más importantes para crear FAQs)
+    busquedas_sin_resultados = BusquedaFAQ.objects.filter(
+        encontro_resultados=False,
+        fecha__gte=hace_30_dias
+    ).values('termino').annotate(
+        total=Count('id')
+    ).order_by('-total')[:10]
+    
+    context = {
+        'categorias': categorias,
+        'total_categorias': total_categorias,
+        'total_preguntas': total_preguntas,
+        'total_preguntas_activas': total_preguntas_activas,
+        'busquedas_recientes': busquedas_recientes,
+        'terminos_populares': terminos_populares,
+        'busquedas_sin_resultados': busquedas_sin_resultados,
+    }
+    return render(request, 'admin/faqs/admin_faqs.html', context)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_crear_categoria_faq(request):
+    """Crear una nueva categoría de FAQ"""
+    from .models import CategoriaFAQ
+    
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre', '').strip()
+        icono = request.POST.get('icono', '❓').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        orden = request.POST.get('orden', 0)
+        activa = request.POST.get('activa') == 'on'
+        
+        if not nombre:
+            messages.error(request, 'El nombre de la categoría es obligatorio.')
+            return redirect('admin_crear_categoria_faq')
+        
+        try:
+            CategoriaFAQ.objects.create(
+                nombre=nombre,
+                icono=icono,
+                descripcion=descripcion,
+                orden=int(orden) if orden else 0,
+                activa=activa,
+                creado_por=request.user
+            )
+            messages.success(request, f'Categoría "{nombre}" creada exitosamente.')
+            return redirect('admin_faqs')
+        except Exception as e:
+            messages.error(request, f'Error al crear la categoría: {str(e)}')
+    
+    # Obtener el siguiente orden disponible
+    from .models import CategoriaFAQ
+    ultimo_orden = CategoriaFAQ.objects.order_by('-orden').first()
+    siguiente_orden = (ultimo_orden.orden + 1) if ultimo_orden else 0
+    
+    context = {
+        'siguiente_orden': siguiente_orden,
+    }
+    return render(request, 'admin/faqs/crear_categoria_faq.html', context)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_editar_categoria_faq(request, categoria_id):
+    """Editar una categoría de FAQ existente"""
+    from .models import CategoriaFAQ
+    
+    categoria = get_object_or_404(CategoriaFAQ, id=categoria_id)
+    
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre', '').strip()
+        icono = request.POST.get('icono', '❓').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        orden = request.POST.get('orden', 0)
+        activa = request.POST.get('activa') == 'on'
+        
+        if not nombre:
+            messages.error(request, 'El nombre de la categoría es obligatorio.')
+            return redirect('admin_editar_categoria_faq', categoria_id=categoria_id)
+        
+        try:
+            categoria.nombre = nombre
+            categoria.icono = icono
+            categoria.descripcion = descripcion
+            categoria.orden = int(orden) if orden else 0
+            categoria.activa = activa
+            categoria.save()
+            messages.success(request, f'Categoría "{nombre}" actualizada exitosamente.')
+            return redirect('admin_faqs')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar la categoría: {str(e)}')
+    
+    context = {
+        'categoria': categoria,
+    }
+    return render(request, 'admin/faqs/editar_categoria_faq.html', context)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_eliminar_categoria_faq(request, categoria_id):
+    """Eliminar una categoría de FAQ"""
+    from .models import CategoriaFAQ
+    
+    categoria = get_object_or_404(CategoriaFAQ, id=categoria_id)
+    
+    # Verificar si tiene preguntas
+    if categoria.preguntas.exists():
+        messages.error(request, f'No se puede eliminar la categoría "{categoria.nombre}" porque tiene preguntas asociadas. Elimina las preguntas primero.')
+        return redirect('admin_faqs')
+    
+    try:
+        nombre = categoria.nombre
+        categoria.delete()
+        messages.success(request, f'Categoría "{nombre}" eliminada exitosamente.')
+    except Exception as e:
+        messages.error(request, f'Error al eliminar la categoría: {str(e)}')
+    
+    return redirect('admin_faqs')
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_preguntas_faq(request, categoria_id):
+    """Ver y gestionar preguntas de una categoría"""
+    from .models import CategoriaFAQ, PreguntaFAQ
+    
+    categoria = get_object_or_404(CategoriaFAQ, id=categoria_id)
+    preguntas = categoria.preguntas.all().order_by('orden')
+    
+    context = {
+        'categoria': categoria,
+        'preguntas': preguntas,
+    }
+    return render(request, 'admin/faqs/preguntas_faq.html', context)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_crear_pregunta_faq(request, categoria_id=None):
+    """Crear una nueva pregunta FAQ"""
+    from .models import CategoriaFAQ, PreguntaFAQ
+    
+    categorias = CategoriaFAQ.objects.filter(activa=True).order_by('orden')
+    categoria_seleccionada = None
+    
+    if categoria_id:
+        categoria_seleccionada = get_object_or_404(CategoriaFAQ, id=categoria_id)
+    
+    if request.method == 'POST':
+        categoria_id_post = request.POST.get('categoria')
+        pregunta = request.POST.get('pregunta', '').strip()
+        respuesta = request.POST.get('respuesta', '').strip()
+        orden = request.POST.get('orden', 0)
+        activa = request.POST.get('activa') == 'on'
+        imagen = request.FILES.get('imagen')
+        
+        if not categoria_id_post or not pregunta or not respuesta:
+            messages.error(request, 'Todos los campos son obligatorios.')
+            return redirect('admin_crear_pregunta_faq')
+        
+        try:
+            categoria = CategoriaFAQ.objects.get(id=categoria_id_post)
+            nueva_pregunta = PreguntaFAQ.objects.create(
+                categoria=categoria,
+                pregunta=pregunta,
+                respuesta=respuesta,
+                orden=int(orden) if orden else 0,
+                activa=activa,
+                creado_por=request.user
+            )
+            
+            # Guardar imagen si se subió
+            if imagen:
+                nueva_pregunta.imagen = imagen
+                nueva_pregunta.save()
+            
+            messages.success(request, 'Pregunta creada exitosamente.')
+            return redirect('admin_preguntas_faq', categoria_id=categoria.id)
+        except Exception as e:
+            messages.error(request, f'Error al crear la pregunta: {str(e)}')
+    
+    # Obtener el siguiente orden disponible
+    siguiente_orden = 0
+    if categoria_seleccionada:
+        ultima_pregunta = categoria_seleccionada.preguntas.order_by('-orden').first()
+        siguiente_orden = (ultima_pregunta.orden + 1) if ultima_pregunta else 0
+    
+    context = {
+        'categorias': categorias,
+        'categoria_seleccionada': categoria_seleccionada,
+        'siguiente_orden': siguiente_orden,
+    }
+    return render(request, 'admin/faqs/crear_pregunta_faq.html', context)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_editar_pregunta_faq(request, pregunta_id):
+    """Editar una pregunta FAQ existente"""
+    from .models import CategoriaFAQ, PreguntaFAQ
+    
+    pregunta = get_object_or_404(PreguntaFAQ, id=pregunta_id)
+    categorias = CategoriaFAQ.objects.filter(activa=True).order_by('orden')
+    
+    if request.method == 'POST':
+        categoria_id = request.POST.get('categoria')
+        pregunta_texto = request.POST.get('pregunta', '').strip()
+        respuesta = request.POST.get('respuesta', '').strip()
+        orden = request.POST.get('orden', 0)
+        activa = request.POST.get('activa') == 'on'
+        imagen = request.FILES.get('imagen')
+        eliminar_imagen = request.POST.get('eliminar_imagen') == 'on'
+        
+        if not categoria_id or not pregunta_texto or not respuesta:
+            messages.error(request, 'Todos los campos son obligatorios.')
+            return redirect('admin_editar_pregunta_faq', pregunta_id=pregunta_id)
+        
+        try:
+            categoria = CategoriaFAQ.objects.get(id=categoria_id)
+            pregunta.categoria = categoria
+            pregunta.pregunta = pregunta_texto
+            pregunta.respuesta = respuesta
+            pregunta.orden = int(orden) if orden else 0
+            pregunta.activa = activa
+            
+            # Manejar imagen
+            if eliminar_imagen and pregunta.imagen:
+                pregunta.imagen.delete(save=False)
+                pregunta.imagen = None
+            elif imagen:
+                # Si ya tenía imagen, eliminarla primero
+                if pregunta.imagen:
+                    pregunta.imagen.delete(save=False)
+                pregunta.imagen = imagen
+            
+            pregunta.save()
+            messages.success(request, 'Pregunta actualizada exitosamente.')
+            return redirect('admin_preguntas_faq', categoria_id=categoria.id)
+        except Exception as e:
+            messages.error(request, f'Error al actualizar la pregunta: {str(e)}')
+    
+    context = {
+        'pregunta': pregunta,
+        'categorias': categorias,
+    }
+    return render(request, 'admin/faqs/editar_pregunta_faq.html', context)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_eliminar_pregunta_faq(request, pregunta_id):
+    """Eliminar una pregunta FAQ"""
+    from .models import PreguntaFAQ
+    
+    pregunta = get_object_or_404(PreguntaFAQ, id=pregunta_id)
+    categoria_id = pregunta.categoria.id
+    
+    try:
+        pregunta.delete()
+        messages.success(request, 'Pregunta eliminada exitosamente.')
+    except Exception as e:
+        messages.error(request, f'Error al eliminar la pregunta: {str(e)}')
+    
+    return redirect('admin_preguntas_faq', categoria_id=categoria_id)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_toggle_pregunta_faq(request, pregunta_id):
+    """Activar/desactivar una pregunta FAQ"""
+    from .models import PreguntaFAQ
+    
+    pregunta = get_object_or_404(PreguntaFAQ, id=pregunta_id)
+    pregunta.activa = not pregunta.activa
+    pregunta.save()
+    
+    estado = "activada" if pregunta.activa else "desactivada"
+    messages.success(request, f'Pregunta {estado} exitosamente.')
+    
+    return redirect('admin_preguntas_faq', categoria_id=pregunta.categoria.id)
+
+
+@login_required
+@user_passes_test(puede_acceder_admin_panel)
+def admin_busquedas_faq(request):
+    """Ver historial de búsquedas de FAQs"""
+    from .models import BusquedaFAQ
+    from django.db.models import Count, Q
+    from datetime import timedelta
+    
+    # Filtros
+    filtro = request.GET.get('filtro', 'todas')
+    dias = int(request.GET.get('dias', 30))
+    
+    fecha_limite = timezone.now() - timedelta(days=dias)
+    
+    # Base query
+    busquedas = BusquedaFAQ.objects.filter(fecha__gte=fecha_limite)
+    
+    if filtro == 'sin_resultados':
+        busquedas = busquedas.filter(encontro_resultados=False)
+    elif filtro == 'con_resultados':
+        busquedas = busquedas.filter(encontro_resultados=True)
+    
+    busquedas = busquedas.select_related('usuario').order_by('-fecha')[:200]
+    
+    # Estadísticas
+    stats = BusquedaFAQ.objects.filter(fecha__gte=fecha_limite).aggregate(
+        total=Count('id'),
+        sin_resultados=Count('id', filter=Q(encontro_resultados=False)),
+        con_resultados=Count('id', filter=Q(encontro_resultados=True))
+    )
+    
+    # Términos más buscados sin resultados
+    terminos_sin_resultados = BusquedaFAQ.objects.filter(
+        fecha__gte=fecha_limite,
+        encontro_resultados=False
+    ).values('termino').annotate(
+        total=Count('id')
+    ).order_by('-total')[:20]
+    
+    context = {
+        'busquedas': busquedas,
+        'stats': stats,
+        'terminos_sin_resultados': terminos_sin_resultados,
+        'filtro': filtro,
+        'dias': dias,
+    }
+    return render(request, 'admin/faqs/busquedas_faq.html', context)
+
+
+def admin_subir_imagen_faq(request):
+    """Subir imagen para usar en FAQs vía AJAX"""
+    from .models import ImagenFAQ
+    import os
+    
+    # Verificar autenticación manualmente para devolver JSON
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'No autenticado. Por favor inicia sesión.'}, status=401)
+    
+    # Verificar permisos
+    if not puede_acceder_admin_panel(request.user):
+        return JsonResponse({'success': False, 'error': 'No tienes permisos para esta acción.'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+    
+    if 'imagen' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'No se envió ninguna imagen'}, status=400)
+    
+    archivo = request.FILES['imagen']
+    
+    # Validar tipo de archivo
+    extensiones_permitidas = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    ext = os.path.splitext(archivo.name)[1].lower()
+    if ext not in extensiones_permitidas:
+        return JsonResponse({
+            'success': False, 
+            'error': f'Tipo de archivo no permitido. Use: {", ".join(extensiones_permitidas)}'
+        }, status=400)
+    
+    # Validar tamaño (máximo 5MB)
+    max_size = 5 * 1024 * 1024  # 5MB
+    if archivo.size > max_size:
+        return JsonResponse({
+            'success': False, 
+            'error': 'La imagen es demasiado grande. Máximo 5MB.'
+        }, status=400)
+    
+    try:
+        # Crear la imagen
+        imagen = ImagenFAQ.objects.create(
+            imagen=archivo,
+            nombre_original=archivo.name,
+            alt_text=request.POST.get('alt_text', ''),
+            subida_por=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'url': imagen.url,
+            'id': imagen.id,
+            'nombre': imagen.nombre_original
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': f'Error al guardar la imagen: {str(e)}'
+        }, status=500)
+
+
+# ============================================
+# VISTAS DE VALIDACIÓN DE PRIORIDAD
+# ============================================
+
+@login_required
+def lista_tickets_pendientes_validacion(request):
+    """Lista de tickets que requieren validación de prioridad"""
+    if not puede_validar_prioridad(request.user):
+        messages.error(request, 'No tienes permiso para validar prioridades.')
+        return redirect('ticket_list')
+    
+    # Obtener tickets con prioridad auto-detectada alta/crítica sin validar
+    tickets = Ticket.objects.filter(
+        prioridad_auto_detectada__in=['critica', 'alta'],
+        prioridad_validada=False
+    ).select_related('creador', 'asignado_a', 'categoria').order_by('-fecha_creacion')
+    
+    # Paginación
+    paginator = Paginator(tickets, TICKETS_POR_PAGINA)
+    page = request.GET.get('page', 1)
+    tickets_page = paginator.get_page(page)
+    
+    context = {
+        'tickets': tickets_page,
+        'total_pendientes': tickets.count(),
+    }
+    return render(request, 'tickets/validar_prioridad_lista.html', context)
+
+
+@login_required
+def validar_prioridad_ticket(request, ticket_id):
+    """Vista para validar o modificar la prioridad de un ticket"""
+    if not puede_validar_prioridad(request.user):
+        messages.error(request, 'No tienes permiso para validar prioridades.')
+        return redirect('ticket_list')
+    
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+        
+        if accion == 'aprobar':
+            # Aprobar la prioridad auto-detectada
+            ticket.prioridad = ticket.prioridad_auto_detectada
+            ticket.prioridad_validada = True
+            ticket.validado_por = request.user
+            ticket.fecha_validacion = timezone.now()
+            ticket.save()
+            
+            # Registrar en historial: representamos el cambio de prioridad como un evento
+            # Usamos los campos válidos del modelo: cambiado_por, estado_anterior, estado_nuevo, comentario
+            HistorialEstado.objects.create(
+                ticket=ticket,
+                cambiado_por=request.user,
+                estado_anterior=f'prioridad:pendiente_validacion',
+                estado_nuevo=f'prioridad:{ticket.prioridad}',
+                comentario=f'Prioridad {ticket.prioridad} validada por supervisor'
+            )
+            
+            messages.success(request, f'Prioridad "{ticket.get_prioridad_display()}" aprobada para el ticket #{ticket.id}.')
+            logger.info(f"Usuario {request.user.username} aprobó prioridad {ticket.prioridad} para ticket #{ticket.id}")
+            
+        elif accion == 'modificar':
+            nueva_prioridad = request.POST.get('nueva_prioridad')
+            if nueva_prioridad in dict(Ticket.PRIORIDADES):
+                prioridad_anterior = ticket.prioridad_auto_detectada
+                ticket.prioridad = nueva_prioridad
+                ticket.prioridad_validada = True
+                ticket.validado_por = request.user
+                ticket.fecha_validacion = timezone.now()
+                ticket.save()
+                
+                # Registrar en historial: se registra la modificación de prioridad
+                HistorialEstado.objects.create(
+                    ticket=ticket,
+                    cambiado_por=request.user,
+                    estado_anterior=f'prioridad:{prioridad_anterior}',
+                    estado_nuevo=f'prioridad:{nueva_prioridad}',
+                    comentario=f'Prioridad modificada de {prioridad_anterior} a {nueva_prioridad} por supervisor'
+                )
+                
+                messages.success(request, f'Prioridad modificada a "{ticket.get_prioridad_display()}" para el ticket #{ticket.id}.')
+                logger.info(f"Usuario {request.user.username} modificó prioridad de {prioridad_anterior} a {nueva_prioridad} para ticket #{ticket.id}")
+            else:
+                messages.error(request, 'Prioridad inválida.')
+                return redirect('validar_prioridad_ticket', ticket_id=ticket.id)
+        
+        return redirect('lista_tickets_pendientes_validacion')
+    
+    # Preferir la prioridad auto-detectada almacenada (si existe) para evitar
+    # discrepancias entre lo que ve el validador y lo que realmente se aprobará.
+    # Aún así, calculamos confianza y palabras para mostrar información útil.
+    if ticket.prioridad_auto_detectada:
+        prioridad_detectada = ticket.prioridad_auto_detectada
+        # Recalcular confianza / palabras (informativo) con la misma función
+        _, confianza, palabras = detectar_prioridad_automatica(
+            ticket.titulo,
+            ticket.descripcion,
+            ticket.tipo
+        )
+    else:
+        prioridad_detectada, confianza, palabras = detectar_prioridad_automatica(
+            ticket.titulo,
+            ticket.descripcion,
+            ticket.tipo  # Incluir el tipo de solicitud
+        )
+    
+    context = {
+        'ticket': ticket,
+        'prioridad_detectada': prioridad_detectada,
+        'nivel_confianza': confianza,
+        'palabras_encontradas': palabras,
+        'prioridades': Ticket.PRIORIDADES,
+    }
+    return render(request, 'tickets/validar_prioridad.html', context)

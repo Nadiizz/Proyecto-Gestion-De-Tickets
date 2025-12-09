@@ -10,12 +10,19 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.xlsx', '.xls', '.zip']
 
 # Transiciones de estado permitidas en el flujo de trabajo
+# Flujo principal: Pendiente → En Progreso → Resuelto → Cerrado
+# 
+# PENDIENTE: Ticket nuevo, esperando que un técnico lo tome
+# EN_PROGRESO: Técnico está trabajando en el ticket
+# RESUELTO: Técnico terminó, esperando confirmación del usuario
+# CERRADO: Usuario confirmó solución o se cerró automáticamente
+# TIEMPO_EXCEDIDO: SLA superado (puede reabrirse)
+#
 TRANSICIONES_ESTADO_VALIDAS = {
-    'pendiente': ['en_progreso', 'asignado'],
-    'asignado': ['en_progreso', 'cerrado'],
-    'en_progreso': ['resuelto', 'pendiente', 'en_progreso'],
-    'resuelto': ['cerrado', 'pendiente'],  # Puede reabrirse
-    'cerrado': [],  # No se puede cambiar desde cerrado (solo admin puede reabrir)
+    'pendiente': ['en_progreso'],  # Técnico toma el ticket
+    'en_progreso': ['resuelto', 'pendiente'],  # Resuelve o devuelve a pendiente si necesita más info
+    'resuelto': ['cerrado', 'en_progreso'],  # Usuario confirma o técnico retoma si no quedó bien
+    'cerrado': ['pendiente'],  # Solo admin puede reabrir un ticket cerrado
     'tiempo_excedido': ['pendiente', 'en_progreso'],  # Puede reabrirse
 }
 
@@ -132,6 +139,12 @@ class Ticket(models.Model):
     tiempo_limite_resolucion = models.DateTimeField(null=True, blank=True)  # SLA deadline
     fue_reabierto = models.BooleanField(default=False)
     numero_escalamientos = models.IntegerField(default=0)
+    
+    # Campos para detección y validación automática de prioridad
+    prioridad_auto_detectada = models.CharField(max_length=10, choices=PRIORIDADES, null=True, blank=True)
+    prioridad_validada = models.BooleanField(default=False)  # True si un supervisor validó la prioridad
+    validado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_validados')
+    fecha_validacion = models.DateTimeField(null=True, blank=True)
     
     # Satisfacción del cliente (1-5)
     calificacion_satisfaccion = models.IntegerField(null=True, blank=True, choices=[(i, i) for i in range(1, 6)])
@@ -323,6 +336,7 @@ class RolPersonalizado(models.Model):
     puede_cambiar_estado = models.BooleanField(default=False)
     puede_gestionar_usuarios = models.BooleanField(default=False)
     puede_crear_roles = models.BooleanField(default=False)
+    puede_validar_prioridad = models.BooleanField(default=False)  # Permiso para validar prioridades auto-detectadas
     
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -381,25 +395,25 @@ class Notificacion(models.Model):
     """Modelo para notificaciones a usuarios"""
     TIPOS_NOTIFICACION = [
         ('ticket_creado', 'Ticket Creado'),
-        ('ticket_asignado', 'Ticket Asignado'),
+        ('ticket_asignado', 'Ticket Asignado'),  # Para el técnico: "Te asignaron un ticket"
+        ('tu_ticket_asignado', 'Tu Ticket Fue Asignado'),  # Para el creador: "Tu ticket fue asignado a X"
+        ('ticket_reasignado', 'Ticket Reasignado'),  # Cuando se reasigna de un técnico a otro
         ('ticket_comentario', 'Nuevo Comentario'),
         ('estado_cambio', 'Cambio de Estado'),
+        ('ticket_en_progreso', 'Ticket En Progreso'),  # Cuando el técnico empieza a trabajar
         ('ticket_resuelto', 'Ticket Resuelto'),
         ('ticket_cerrado', 'Ticket Cerrado'),
-    ]
-    
-    PRIORIDADES = [
-        ('baja', 'Baja'),
-        ('media', 'Media'),
-        ('alta', 'Alta'),
-        ('critica', 'Crítica'),
+        ('ticket_cerrado_exito', 'Ticket Cerrado Exitosamente'),  # Para el técnico: el usuario confirmó la solución
+        ('solucion_rechazada', 'Solución Rechazada'),  # Para el técnico: el usuario dice que no funcionó
+        ('ticket_reabierto', 'Ticket Reabierto'),  # Cuando se reabre un ticket cerrado
+        ('ticket_requiere_validacion', 'Ticket Requiere Validación'),
     ]
     
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notificaciones')
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones')
     
     tipo = models.CharField(max_length=50, choices=TIPOS_NOTIFICACION)
-    prioridad = models.CharField(max_length=20, choices=PRIORIDADES, default='media')
+    prioridad = models.CharField(max_length=20, choices=Ticket.PRIORIDADES, default='media')  # Reutiliza PRIORIDADES de Ticket
     
     titulo = models.CharField(max_length=200)
     mensaje = models.TextField()
@@ -429,3 +443,106 @@ class Notificacion(models.Model):
     
     def __str__(self):
         return f"{self.titulo} → {self.usuario.username}"
+
+
+# ==================== SISTEMA DE FAQs DINÁMICO ====================
+
+class CategoriaFAQ(models.Model):
+    """Categorías para organizar las preguntas frecuentes"""
+    nombre = models.CharField(max_length=100)
+    icono = models.CharField(max_length=10, default='❓', help_text="Emoji para la categoría")
+    descripcion = models.TextField(blank=True)
+    orden = models.PositiveIntegerField(default=0, help_text="Orden de visualización")
+    activa = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='categorias_faq_creadas')
+    
+    class Meta:
+        ordering = ['orden', 'nombre']
+        verbose_name = 'Categoría de FAQ'
+        verbose_name_plural = 'Categorías de FAQs'
+    
+    def __str__(self):
+        return f"{self.icono} {self.nombre}"
+    
+    def preguntas_activas(self):
+        """Retorna solo las preguntas activas de esta categoría"""
+        return self.preguntas.filter(activa=True)
+
+
+class PreguntaFAQ(models.Model):
+    """Preguntas frecuentes con sus respuestas"""
+    categoria = models.ForeignKey(CategoriaFAQ, on_delete=models.CASCADE, related_name='preguntas')
+    pregunta = models.CharField(max_length=300)
+    respuesta = models.TextField(help_text="Puedes usar HTML básico para formato (ul, li, strong, etc.)")
+    imagen = models.ImageField(upload_to='faqs/imagenes/', blank=True, null=True, help_text="Imagen ilustrativa opcional")
+    orden = models.PositiveIntegerField(default=0, help_text="Orden dentro de la categoría")
+    activa = models.BooleanField(default=True)
+    vistas = models.PositiveIntegerField(default=0, help_text="Cantidad de veces que se ha visto esta pregunta")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='preguntas_faq_creadas')
+    
+    class Meta:
+        ordering = ['categoria', 'orden', 'pregunta']
+        verbose_name = 'Pregunta FAQ'
+        verbose_name_plural = 'Preguntas FAQs'
+    
+    def __str__(self):
+        return self.pregunta[:80]
+    
+    def incrementar_vistas(self):
+        """Incrementa el contador de vistas"""
+        self.vistas += 1
+        self.save(update_fields=['vistas'])
+
+
+class BusquedaFAQ(models.Model):
+    """Registro de búsquedas de usuarios en FAQs para análisis"""
+    termino = models.CharField(max_length=200)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='busquedas_faq')
+    encontro_resultados = models.BooleanField(default=False)
+    cantidad_resultados = models.PositiveIntegerField(default=0)
+    fecha = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Búsqueda de FAQ'
+        verbose_name_plural = 'Búsquedas de FAQs'
+        indexes = [
+            models.Index(fields=['-fecha']),
+            models.Index(fields=['termino']),
+        ]
+    
+    def __str__(self):
+        estado = "✅" if self.encontro_resultados else "❌"
+        return f"{estado} '{self.termino}' - {self.fecha.strftime('%d/%m/%Y %H:%M')}"
+
+
+def imagen_faq_path(instance, filename):
+    """Genera la ruta para guardar imágenes de FAQs"""
+    import uuid
+    ext = filename.split('.')[-1]
+    nuevo_nombre = f"{uuid.uuid4().hex[:12]}.{ext}"
+    return f"faqs/imagenes/{nuevo_nombre}"
+
+
+class ImagenFAQ(models.Model):
+    """Imágenes que pueden ser usadas en las respuestas de FAQs"""
+    imagen = models.ImageField(upload_to=imagen_faq_path, verbose_name="Imagen")
+    nombre_original = models.CharField(max_length=255, blank=True)
+    alt_text = models.CharField(max_length=200, blank=True, help_text="Texto alternativo para accesibilidad")
+    subida_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='imagenes_faq')
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-fecha_subida']
+        verbose_name = 'Imagen FAQ'
+        verbose_name_plural = 'Imágenes FAQs'
+    
+    def __str__(self):
+        return self.nombre_original or f"Imagen {self.id}"
+    
+    @property
+    def url(self):
+        return self.imagen.url if self.imagen else ''

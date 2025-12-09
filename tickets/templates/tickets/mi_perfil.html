@@ -3,240 +3,11 @@
 {% load static %}
 
 {% block extra_css %}
-<style>
-    .profile-container {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-
-    .profile-header {
-        background: linear-gradient(135deg, #8e44ad 0%, #a855f7 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
-        text-align: center;
-    }
-
-    .profile-header h1 {
-        margin: 0;
-        font-size: 2rem;
-    }
-
-    .profile-header p {
-        margin: 0.5rem 0 0 0;
-        opacity: 0.9;
-    }
-
-    .profile-section {
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .profile-section h2 {
-        color: #2c3e50;
-        border-bottom: 2px solid #8e44ad;
-        padding-bottom: 1rem;
-        margin: 0 0 1.5rem 0;
-        font-size: 1.3rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #bdc3c7;
-        border-radius: 6px;
-        font-family: inherit;
-        font-size: 0.95rem;
-        transition: border-color 0.3s ease;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #8e44ad;
-        box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.1);
-    }
-
-    .profile-photo {
-        max-width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #8e44ad;
-        display: block;
-        margin: 0 auto 1rem;
-    }
-
-    .file-input-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        width: 100%;
-    }
-
-    .file-input-wrapper input[type="file"] {
-        position: absolute;
-        left: -9999px;
-    }
-
-    .file-input-label {
-        display: inline-block;
-        padding: 0.75rem 1.5rem;
-        background: #3498db;
-        color: white;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background 0.3s ease;
-        width: 100%;
-        text-align: center;
-    }
-
-    .file-input-label:hover {
-        background: #2980b9;
-    }
-
-    .help-text {
-        display: block;
-        font-size: 0.85rem;
-        color: #7f8c8d;
-        margin-top: 0.25rem;
-    }
-
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-
-    .btn {
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn-submit {
-        background: linear-gradient(135deg, #8e44ad 0%, #a855f7 100%);
-        color: white;
-        flex: 1;
-    }
-
-    .btn-submit:hover {
-        background: linear-gradient(135deg, #7d3c98 0%, #9333ea 100%);
-        transform: translateY(-2px);
-    }
-
-    .btn-secondary {
-        background: #95a5a6;
-        color: white;
-        flex: 1;
-    }
-
-    .btn-secondary:hover {
-        background: #7f8c8d;
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        margin: 1rem 0;
-    }
-
-    .info-item {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 6px;
-        border-left: 3px solid #8e44ad;
-    }
-
-    .info-item strong {
-        display: block;
-        color: #2c3e50;
-        margin-bottom: 0.25rem;
-    }
-
-    .info-item span {
-        color: #7f8c8d;
-        font-size: 0.95rem;
-    }
-
-    .alert {
-        padding: 1rem;
-        border-radius: 6px;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .alert-success {
-        background-color: #d5f4e6;
-        color: #27ae60;
-        border: 1px solid #27ae60;
-    }
-
-    .alert-danger {
-        background-color: #fadbd8;
-        color: #e74c3c;
-        border: 1px solid #e74c3c;
-    }
-
-    @media (max-width: 768px) {
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-
-        .info-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .form-actions {
-            flex-direction: column;
-        }
-
-        .profile-header {
-            padding: 1.5rem;
-        }
-
-        .profile-section {
-            padding: 1.5rem;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'tickets/css/perfil.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="profile-container">
+<div class="profile-container page-transition-enter">
     {# Header #}
     <div class="profile-header">
         <h1>👤 Mi Perfil</h1>
@@ -261,16 +32,16 @@
             <input type="hidden" name="accion" value="actualizar_perfil">
             
             {# Foto de Perfil #}
-            <div class="form-group" style="text-align: center;">
-                <h3 style="margin-bottom: 1rem; color: #2c3e50;">📷 Foto de Perfil</h3>
+            <div class="profile-photo-container">
+                <h3>📷 Foto de Perfil</h3>
                 
                 {# Círculo que muestra la foto (actual o preview) #}
-                <div id="foto-container" style="margin-bottom: 1rem;">
+                <div id="foto-container">
                     {% if perfil.foto_perfil %}
                         <img id="foto-display" src="{{ perfil.foto_perfil.url }}" alt="Foto de perfil" class="profile-photo">
                     {% else %}
-                        <div id="foto-display" class="profile-photo" style="background: #ecf0f1; display: flex; align-items: center; justify-content: center; font-size: 3rem;">
-                            📷
+                        <div id="foto-display" class="profile-photo" style="background: linear-gradient(135deg, #ecf0f1 0%, #dfe6e9 100%); display: flex; align-items: center; justify-content: center; font-size: 3.5rem;">
+                            👤
                         </div>
                     {% endif %}
                 </div>
@@ -298,36 +69,38 @@
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" class="form-control" value="{{ usuario.email }}" required>
+                <small class="help-text">Tu dirección de correo electrónico principal</small>
             </div>
 
             {# Información de Perfil Adicional #}
-            <h3 style="color: #2c3e50; margin-top: 1.5rem; margin-bottom: 1rem;">Información Adicional</h3>
+            <h3>📋 Información Adicional</h3>
             
             <div class="form-row">
                 <div class="form-group">
                     <label for="telefono">Teléfono</label>
-                    <input type="tel" id="telefono" name="telefono" class="form-control" value="{{ perfil.telefono }}">
+                    <input type="tel" id="telefono" name="telefono" class="form-control" value="{{ perfil.telefono }}" placeholder="+56 9 1234 5678">
+                    <small class="help-text">Número de contacto (opcional)</small>
                 </div>
                 
                 <div class="form-group">
                     <label for="cargo">Cargo</label>
-                    <input type="text" id="cargo" name="cargo" class="form-control" value="{{ perfil.cargo }}">
+                    <input type="text" id="cargo" name="cargo" class="form-control" value="{{ perfil.cargo }}" placeholder="Ej: Analista, Desarrollador...">
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="departamento">Departamento</label>
-                <input type="text" id="departamento" name="departamento" class="form-control" value="{{ perfil.departamento }}">
+                <input type="text" id="departamento" name="departamento" class="form-control" value="{{ perfil.departamento }}" placeholder="Ej: TI, Recursos Humanos...">
             </div>
 
             {# Información de Rol #}
             <div class="info-grid">
                 <div class="info-item">
-                    <strong>Usuario</strong>
+                    <strong>👤 Usuario</strong>
                     <span>{{ usuario.username }}</span>
                 </div>
                 <div class="info-item">
-                    <strong>Grupo/Rol</strong>
+                    <strong>🏷️ Grupo/Rol</strong>
                     <span>{{ grupo_actual.name|default:"Sin asignar" }}</span>
                 </div>
             </div>
@@ -347,8 +120,8 @@
             {% csrf_token %}
             <input type="hidden" name="accion" value="cambiar_password">
             
-            <p style="color: #7f8c8d; margin-bottom: 1.5rem;">
-                Por tu seguridad, cambiar tu contraseña periódicamente es recomendado.
+            <p class="security-intro">
+                🛡️ Por tu seguridad, te recomendamos cambiar tu contraseña periódicamente y usar una combinación de letras, números y símbolos.
             </p>
 
             <div class="form-group">
@@ -370,10 +143,10 @@
                 </div>
             </div>
 
-            <div style="background: #fff3cd; border-left: 3px solid #f39c12; padding: 1rem; border-radius: 6px; margin: 1rem 0;">
-                <strong style="color: #f39c12;">⚠️ Nota Importante:</strong>
-                <p style="margin: 0.5rem 0 0 0; color: #856404;">
-                    Después de cambiar tu contraseña, tendrás que iniciar sesión nuevamente.
+            <div class="warning-note">
+                <strong>⚠️ Nota Importante</strong>
+                <p>
+                    Después de cambiar tu contraseña, tendrás que iniciar sesión nuevamente con tus nuevas credenciales.
                 </p>
             </div>
 
@@ -423,15 +196,40 @@
                 img.src = e.target.result;
                 img.alt = 'Preview de foto';
                 img.className = 'profile-photo';
+                img.style.animation = 'scaleIn 0.3s ease-out';
                 fotoDisplay.parentNode.replaceChild(img, fotoDisplay);
             } else {
-                // Si ya es una imagen, solo actualizar el src
+                // Si ya es una imagen, solo actualizar el src con animación
+                fotoDisplay.style.animation = 'none';
+                fotoDisplay.offsetHeight; // Trigger reflow
+                fotoDisplay.style.animation = 'scaleIn 0.3s ease-out';
                 fotoDisplay.src = e.target.result;
             }
         };
         
         reader.readAsDataURL(file);
     }
+
+    // Animación de transición al navegar
+    document.addEventListener('DOMContentLoaded', function() {
+        const links = document.querySelectorAll('a:not([target="_blank"])');
+        const container = document.querySelector('.profile-container');
+        
+        links.forEach(link => {
+            link.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href && href.startsWith('/') && !href.startsWith('//')) {
+                    e.preventDefault();
+                    container.classList.remove('page-transition-enter');
+                    container.classList.add('page-transition-leave');
+                    
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 300);
+                }
+            });
+        });
+    });
 </script>
 
 {% endblock %}

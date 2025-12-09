@@ -1,0 +1,135 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Preguntas de {{ categoria.nombre }} - Panel Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_faqs.css' %}">
+<style>
+    /* Estilos específicos de esta página */
+    .categoria-icono {
+        font-size: 2.5rem;
+    }
+    
+    .pregunta-card.inactiva {
+        opacity: 0.6;
+        border-left-color: #dc3545;
+    }
+    
+    .pregunta-respuesta {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        color: #555;
+        font-size: 0.95rem;
+        max-height: 150px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .pregunta-respuesta.expandida {
+        max-height: none;
+    }
+    
+    .btn-action {
+        padding: 0.35rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+    }
+    
+    .stat-item {
+        background: rgba(255,255,255,0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <a href="{% url 'admin_faqs' %}" class="btn btn-outline-secondary">
+            ⬅️ Volver a FAQs
+        </a>
+    </div>
+    
+    <!-- Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1>
+                    <span class="categoria-icono">{{ categoria.icono }}</span>
+                    {{ categoria.nombre }}
+                </h1>
+                {% if categoria.descripcion %}
+                <p class="mb-0 mt-2 opacity-75">{{ categoria.descripcion }}</p>
+                {% endif %}
+                <div class="stats-row">
+                    <div class="stat-item">
+                        📋 <span>{{ preguntas.count }} preguntas</span>
+                    </div>
+                    <div class="stat-item">
+                        🔢 <span>Orden: {{ categoria.orden }}</span>
+                    </div>
+                    <div class="stat-item">
+                        {% if categoria.activa %}✅{% else %}❌{% endif %}
+                        <span>{% if categoria.activa %}Activa{% else %}Inactiva{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+            <a href="{% url 'admin_crear_pregunta_faq_categoria' categoria.id %}" class="btn btn-light">
+                ➕ Nueva Pregunta
+            </a>
+        </div>
+    </div>
+    
+    <!-- Lista de Preguntas -->
+    {% if preguntas %}
+        {% for pregunta in preguntas %}
+        <div class="pregunta-card {% if not pregunta.activa %}inactiva{% endif %}">
+            <div class="pregunta-header">
+                <div class="pregunta-titulo">
+                    <span class="badge badge-estado {% if pregunta.activa %}badge-activa{% else %}badge-inactiva{% endif %} me-2">
+                        {% if pregunta.activa %}✓ Activa{% else %}✗ Inactiva{% endif %}
+                    </span>
+                    {{ pregunta.pregunta }}
+                </div>
+                <div class="pregunta-actions">
+                    <a href="{% url 'admin_toggle_pregunta_faq' pregunta.id %}" class="btn btn-sm {% if pregunta.activa %}btn-outline-warning{% else %}btn-outline-success{% endif %} btn-action" title="{% if pregunta.activa %}Desactivar{% else %}Activar{% endif %}">
+                        {% if pregunta.activa %}🙈{% else %}👁️{% endif %}
+                    </a>
+                    <a href="{% url 'admin_editar_pregunta_faq' pregunta.id %}" class="btn btn-sm btn-outline-primary btn-action" title="Editar">
+                        ✏️
+                    </a>
+                    <a href="{% url 'admin_eliminar_pregunta_faq' pregunta.id %}" class="btn btn-sm btn-outline-danger btn-action" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar esta pregunta?');">
+                        🗑️
+                    </a>
+                </div>
+            </div>
+            
+            <div class="pregunta-respuesta" id="respuesta-{{ pregunta.id }}">
+                {{ pregunta.respuesta|safe|truncatewords:50 }}
+            </div>
+            
+            <div class="pregunta-meta">
+                <span>🔢 Orden: {{ pregunta.orden }}</span>
+                <span>👁️ {{ pregunta.vistas }} vistas</span>
+                <span>📅 {{ pregunta.fecha_creacion|date:"d/m/Y" }}</span>
+                {% if pregunta.creado_por %}
+                <span>👤 {{ pregunta.creado_por.get_full_name|default:pregunta.creado_por.username }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div style="font-size: 4rem;">❓</div>
+            <h4>No hay preguntas en esta categoría</h4>
+            <p class="text-muted">Crea la primera pregunta para esta categoría</p>
+            <a href="{% url 'admin_crear_pregunta_faq_categoria' categoria.id %}" class="btn btn-primary">
+                ➕ Crear Pregunta
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -50,7 +50,7 @@
                     <label>
                         <input type="checkbox" name="puede_ver_metricas" {% if rol.puede_ver_metricas %}checked{% endif %}>
                         <div class="permiso-info">
-                            <span class="permiso-title"> Ver Métricas</span>
+                            <span class="permiso-title">📈 Ver Métricas</span>
                             <span class="permiso-desc">Acceso a estadísticas y reportes del sistema</span>
                         </div>
                     </label>
@@ -60,7 +60,7 @@
                     <label>
                         <input type="checkbox" name="puede_ver_todos_tickets" {% if rol.puede_ver_todos_tickets %}checked{% endif %}>
                         <div class="permiso-info">
-                            <span class="permiso-title"> Ver Todos los Tickets</span>
+                            <span class="permiso-title">📋 Ver Todos los Tickets</span>
                             <span class="permiso-desc">Ver tickets de todos los usuarios, no solo los propios</span>
                         </div>
                     </label>
@@ -70,7 +70,7 @@
                     <label>
                         <input type="checkbox" name="puede_asignar_tickets" {% if rol.puede_asignar_tickets %}checked{% endif %}>
                         <div class="permiso-info">
-                            <span class="permiso-title"> Asignar Tickets</span>
+                            <span class="permiso-title">👥 Asignar Tickets</span>
                             <span class="permiso-desc">Asignar tickets a técnicos</span>
                         </div>
                     </label>
@@ -80,7 +80,7 @@
                     <label>
                         <input type="checkbox" name="puede_cambiar_estado" {% if rol.puede_cambiar_estado %}checked{% endif %}>
                         <div class="permiso-info">
-                            <span class="permiso-title"> Cambiar Estado</span>
+                            <span class="permiso-title">🔄 Cambiar Estado</span>
                             <span class="permiso-desc">Cambiar el estado de cualquier ticket</span>
                         </div>
                     </label>
@@ -90,7 +90,7 @@
                     <label>
                         <input type="checkbox" name="puede_gestionar_usuarios" {% if rol.puede_gestionar_usuarios %}checked{% endif %}>
                         <div class="permiso-info">
-                            <span class="permiso-title"> Gestionar Usuarios</span>
+                            <span class="permiso-title">⚙️ Gestionar Usuarios</span>
                             <span class="permiso-desc">Crear, editar y eliminar usuarios del sistema</span>
                         </div>
                     </label>
@@ -100,8 +100,18 @@
                     <label>
                         <input type="checkbox" name="puede_crear_roles" {% if rol.puede_crear_roles %}checked{% endif %}>
                         <div class="permiso-info">
-                            <span class="permiso-title"> Crear Roles</span>
+                            <span class="permiso-title">🎭 Crear Roles</span>
                             <span class="permiso-desc">Crear y modificar roles personalizados</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_validar_prioridad" {% if rol.puede_validar_prioridad %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">⚖️ Validar Prioridad</span>
+                            <span class="permiso-desc">Validar prioridades auto-detectadas en tickets críticos</span>
                         </div>
                     </label>
                 </div>

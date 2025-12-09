@@ -1,0 +1,114 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/validar_prioridad.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="validacion-container">
+    <header class="validacion-header">
+        <div class="header-info">
+            <h1><i class="fas fa-clipboard-check"></i> Tickets Pendientes de Validación</h1>
+            <p class="subtitle">Revisa y valida la prioridad auto-detectada de los tickets críticos y de alta prioridad</p>
+        </div>
+        <div class="header-stats">
+            <div class="stat-badge urgente">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>{{ total_pendientes }} pendientes</span>
+            </div>
+        </div>
+    </header>
+
+    {% if tickets %}
+    <div class="tickets-pendientes-grid">
+        {% for ticket in tickets %}
+        <article class="ticket-validacion-card prioridad-{{ ticket.prioridad_auto_detectada }}">
+            <div class="ticket-card-header">
+                <div class="ticket-id">#{{ ticket.id }}</div>
+                <div class="prioridad-badge {{ ticket.prioridad_auto_detectada }}">
+                    {% if ticket.prioridad_auto_detectada == 'critica' %}
+                        <i class="fas fa-fire"></i> CRÍTICA
+                    {% elif ticket.prioridad_auto_detectada == 'alta' %}
+                        <i class="fas fa-arrow-up"></i> ALTA
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="ticket-card-body">
+                <h3 class="ticket-titulo">{{ ticket.titulo|truncatechars:60 }}</h3>
+                <p class="ticket-descripcion">{{ ticket.descripcion|truncatechars:120 }}</p>
+                
+                <div class="ticket-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-user"></i>
+                        <span>{{ ticket.creador.get_full_name|default:ticket.creador.username }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ ticket.fecha_creacion|timesince }} atrás</span>
+                    </div>
+                    {% if ticket.categoria %}
+                    <div class="meta-item">
+                        <i class="fas fa-folder"></i>
+                        <span>{{ ticket.categoria.nombre }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="ticket-card-footer">
+                <a href="{% url 'validar_prioridad_ticket' ticket.id %}" class="btn-validar">
+                    <i class="fas fa-check-double"></i>
+                    Validar Prioridad
+                </a>
+                <a href="{% url 'ticket_detalle' ticket.id %}" class="btn-ver-ticket">
+                    <i class="fas fa-eye"></i>
+                    Ver Ticket
+                </a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación -->
+    {% if tickets.has_other_pages %}
+    <nav class="paginacion-validacion">
+        <ul class="pagination">
+            {% if tickets.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ tickets.previous_page_number }}">
+                    <i class="fas fa-chevron-left"></i> Anterior
+                </a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">Página {{ tickets.number }} de {{ tickets.paginator.num_pages }}</span>
+            </li>
+            
+            {% if tickets.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ tickets.next_page_number }}">
+                    Siguiente <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="no-tickets-pendientes">
+        <div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            <h2>¡Todo en orden!</h2>
+            <p>No hay tickets pendientes de validación en este momento.</p>
+            <a href="{% url 'ticket_list' %}" class="btn-volver">
+                <i class="fas fa-arrow-left"></i> Volver a Tickets
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

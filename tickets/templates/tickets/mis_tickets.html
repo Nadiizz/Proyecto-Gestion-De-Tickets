@@ -60,11 +60,11 @@
                 <label for="estado">🔍 Filtrar por estado:</label>
                 <select name="estado" id="estado" class="form-select" onchange="this.form.submit()">
                     <option value="">Todos los estados</option>
-                    <option value="abierto" {% if estado_filtro == 'abierto' %}selected{% endif %}>Abierto</option>
+                    <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendiente</option>
                     <option value="en_progreso" {% if estado_filtro == 'en_progreso' %}selected{% endif %}>En Progreso</option>
                     <option value="resuelto" {% if estado_filtro == 'resuelto' %}selected{% endif %}>Resuelto</option>
                     <option value="cerrado" {% if estado_filtro == 'cerrado' %}selected{% endif %}>Cerrado</option>
-                    <option value="cancelado" {% if estado_filtro == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    <option value="tiempo_excedido" {% if estado_filtro == 'tiempo_excedido' %}selected{% endif %}>Tiempo Excedido</option>
                 </select>
             </div>
             {% if estado_filtro %}
@@ -92,7 +92,7 @@
                         <div class="ticket-meta">
                             <span>📅 {{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</span>
                             <span>📁 {{ ticket.get_tipo_display }}</span>
-                            <span>🏢 {{ ticket.area_afectada }}</span>
+                            <span>🏢 {{ ticket.categoria.nombre }}</span>
                         </div>
                         {% if ticket.asignado_a %}
                         <div class="ticket-assigned">

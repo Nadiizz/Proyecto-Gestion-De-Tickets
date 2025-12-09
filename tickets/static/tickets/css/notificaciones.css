@@ -1,0 +1,456 @@
+/* ============================================
+   ESTILOS PARA LISTA DE NOTIFICACIONES
+   Página de notificaciones del usuario
+   ============================================ */
+
+/* =====================
+   CONTENEDOR PRINCIPAL
+   ===================== */
+.content-wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* =====================
+   HEADER
+   ===================== */
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 20px;
+}
+
+.content-header h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: #1f2937;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* =====================
+   FILTROS
+   ===================== */
+.filter-section {
+    background-color: #f9fafb;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border: 1px solid #e5e7eb;
+}
+
+.filter-form {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.form-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background-color: white;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+}
+
+/* =====================
+   ESTADÍSTICAS
+   ===================== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #8e44ad 0%, #a855f7 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(162, 155, 254, 0.3);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* =====================
+   LISTA DE NOTIFICACIONES
+   ===================== */
+.notifications-list {
+    display: grid;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.notification-card {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.notification-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #a855f7;
+}
+
+.notification-card.unread {
+    background-color: #f8f4ff;
+    border-left: 4px solid #a855f7;
+}
+
+/* =====================
+   HEADER DE NOTIFICACIÓN
+   ===================== */
+.notification-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    gap: 15px;
+}
+
+.notification-title-section {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+}
+
+.notification-emoji {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.notification-info {
+    flex: 1;
+}
+
+.notification-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.notification-type {
+    margin: 5px 0 0 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.notification-status {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* =====================
+   BADGES DE PRIORIDAD
+   ===================== */
+.priority-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.priority-critical {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.priority-high {
+    background-color: #fed7aa;
+    color: #92400e;
+}
+
+.priority-medium {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.priority-low {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+/* =====================
+   BADGES DE ESTADO
+   ===================== */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.read {
+    background-color: #e5e7eb;
+    color: #4b5563;
+}
+
+.status-badge.unread {
+    background-color: #a855f7;
+    color: white;
+}
+
+/* =====================
+   CONTENIDO DE NOTIFICACIÓN
+   ===================== */
+.notification-content {
+    margin-top: 15px;
+}
+
+.notification-message {
+    margin: 0 0 15px 0;
+    color: #374151;
+    line-height: 1.6;
+}
+
+.notification-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 15px;
+}
+
+.notification-metadata {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* =====================
+   BOTONES
+   ===================== */
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #a855f7;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #9333ea;
+}
+
+.btn-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+/* =====================
+   INFORMACIÓN DE ENTREGA
+   ===================== */
+.delivery-info {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.delivery-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.delivery-badge.email {
+    background-color: #dbeafe;
+    color: #0c4a6e;
+}
+
+.delivery-badge.whatsapp {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+/* =====================
+   PAGINACIÓN
+   ===================== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+.page-link {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    color: #3b82f6;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.page-link:hover {
+    background-color: #eff6ff;
+    border-color: #3b82f6;
+}
+
+.page-current {
+    padding: 8px 12px;
+    background-color: #a855f7;
+    color: white;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 5px;
+}
+
+/* =====================
+   ESTADO VACÍO
+   ===================== */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    border: 2px dashed #d1d5db;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.5rem;
+    color: #1f2937;
+}
+
+.empty-state p {
+    margin: 0;
+    color: #6b7280;
+}
+
+/* =====================
+   RESPONSIVE
+   ===================== */
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .filter-form {
+        flex-direction: column;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .notification-card-header {
+        flex-direction: column;
+    }
+
+    .notification-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .notification-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .btn-small {
+        width: 100%;
+        text-align: center;
+    }
+
+    .pagination {
+        gap: 5px;
+    }
+
+    .page-link {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+}

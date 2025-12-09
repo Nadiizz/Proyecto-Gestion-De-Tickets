@@ -100,11 +100,11 @@ class BusquedaTicketForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-control'}),
         label=''
     )
-    area_afectada = forms.CharField(
+    categoria = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Filtrar por área...'
+            'placeholder': 'Filtrar por categoría...'
         }),
         label=''
     )

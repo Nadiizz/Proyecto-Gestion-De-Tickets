@@ -311,7 +311,7 @@
 }
 
 .status-abierto { background: #e3f2fd; color: #f57c00; }
-.status-pendiente { background: #fff9c4; color: #f57f17; }
+.status-pendiente { background: #fff9c4; color: #f57f17; font-weight: 600; }
 .status-en_progreso { background: #fff3e0; color: #1976d2; }
 .status-resuelto { background: #e8f5e8; color: #388e3c; }
 .status-cerrado { background: #9e9e9e; color: #ffffff; }
@@ -387,5 +387,156 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* ========== NUEVOS ESTILOS PARA CONTEXTO DE ROL ========== */
+
+.role-context-info {
+    margin-bottom: 1.5rem;
+    animation: slideUp 0.4s ease-out;
+}
+
+.alert {
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.alert strong {
+    display: block;
+    width: 100%;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-left: 4px solid #2196f3;
+    color: #1565c0;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-left: 4px solid #4caf50;
+    color: #2e7d32;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+    border-left: 4px solid #ffc107;
+    color: #f57f17;
+}
+
+/* ========== GUÍA DE FLUJO DE ESTADOS ========== */
+
+.status-flow-guide {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    animation: slideUp 0.5s ease-out 0.3s both;
+}
+
+.status-flow-guide h4 {
+    color: #2c3e50;
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.flow-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.flow-step {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    background: #f5f5f5;
+    color: #666;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.flow-step.current {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+}
+
+.flow-arrow {
+    color: #bdc3c7;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* ========== DESCRIPCIONES DE ESTADO ========== */
+
+.status-description {
+    display: block;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    font-weight: normal;
+    margin-top: 0.3rem;
+}
+
+/* ========== SIN TRANSICIONES DISPONIBLES ========== */
+
+.no-transitions-available {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.no-transitions-available .alert {
+    text-align: left;
+    margin-bottom: 1.5rem;
+}
+
+.no-transitions-available .alert p {
+    margin: 0.5rem 0 0 0;
+    font-weight: normal;
+}
+
+/* ========== MEJORAS EN STATUS OPTIONS ========== */
+
+.status-option-content {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.status-option input[type="radio"]:checked + .status-option-content .status-description {
+    color: #2c3e50;
+}
+
+/* ========== RESPONSIVE PARA NUEVOS ELEMENTOS ========== */
+
+@media (max-width: 768px) {
+    .flow-steps {
+        flex-direction: column;
+    }
+    
+    .flow-arrow {
+        transform: rotate(90deg);
+    }
+    
+    .role-context-info .alert {
+        padding: 1rem;
+    }
+    
+    .status-flow-guide {
+        padding: 1rem;
     }
 }

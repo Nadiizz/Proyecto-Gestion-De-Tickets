@@ -7,33 +7,121 @@
 {% load crispy_forms_tags %}
 {% block content %}
 
-<!-- Estadísticas del Dashboard -->
-<div class="stats-grid">
-    <div class="stat-card registrados">
-        <div class="stat-number">{{ total_tickets }}</div>
-        <div class="stat-label">Registrados</div>
+<!-- Estadísticas del Dashboard con barras de progreso -->
+<div class="stats-grid-enhanced">
+    <div class="stat-card-enhanced total">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_tickets }}</div>
+            <div class="stat-label">Total Registrados</div>
+        </div>
     </div>
-    <div class="stat-card asignados">
-        <div class="stat-number">{{ asignados_count }}</div>
-        <div class="stat-label">Asignados</div>
+    
+    <div class="stat-card-enhanced pendientes">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ pendientes_count }}</span>
+                <span class="stat-percentage" data-count="{{ pendientes_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress pendientes-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card proceso">
-        <div class="stat-number">{{ en_proceso_count }}</div>
-        <div class="stat-label">En Proceso</div>
+    
+    <div class="stat-card-enhanced proceso">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ en_proceso_count }}</span>
+                <span class="stat-percentage" data-count="{{ en_proceso_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">En Proceso</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress proceso-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card finalizados">
-        <div class="stat-number">{{ resueltos_count }}</div>
-        <div class="stat-label">Resueltos</div>
+    
+    <div class="stat-card-enhanced resueltos">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ resueltos_count }}</span>
+                <span class="stat-percentage" data-count="{{ resueltos_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">Resueltos</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress resueltos-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card cerrados">
-        <div class="stat-number">{{ cerrados_count }}</div>
-        <div class="stat-label">Cerrados</div>
+    
+    <div class="stat-card-enhanced cerrados">
+        <div class="stat-icon">📁</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ cerrados_count }}</span>
+                <span class="stat-percentage" data-count="{{ cerrados_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">Cerrados</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress cerrados-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card sla-excedido">
-        <div class="stat-number">{{ sla_excedido_count }}</div>
-        <div class="stat-label">SLA Excedido</div>
+    
+    <div class="stat-card-enhanced sla-excedido">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ sla_excedido_count }}</span>
+                <span class="stat-percentage" data-count="{{ sla_excedido_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">SLA Excedido</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress sla-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- Sección de Tickets Urgentes (solo para admins y técnicos) -->
+{% if tickets_urgentes and permisos.es_admin or tickets_urgentes and permisos.es_tecnico %}
+<div class="urgent-tickets-section">
+    <div class="urgent-header">
+        <h3>🚨 Tickets Urgentes</h3>
+        <span class="urgent-badge">{{ tickets_urgentes|length }} pendiente{{ tickets_urgentes|length|pluralize:"s" }}</span>
+    </div>
+    <div class="urgent-tickets-grid">
+        {% for ticket in tickets_urgentes %}
+        <div class="urgent-ticket-card priority-{{ ticket.prioridad|lower }}">
+            <div class="urgent-ticket-header">
+                <span class="ticket-id">#{{ ticket.id }}</span>
+                <span class="priority-badge priority-{{ ticket.prioridad|lower }}">
+                    {% if ticket.prioridad == 'critica' %}🔴{% else %}🟠{% endif %} {{ ticket.prioridad|title }}
+                </span>
+            </div>
+            <div class="urgent-ticket-title">{{ ticket.titulo|truncatechars:50 }}</div>
+            <div class="urgent-ticket-meta">
+                <span>📁 {{ ticket.categoria.nombre }}</span>
+                <span>📅 {{ ticket.fecha_creacion|timesince }}</span>
+            </div>
+            <div class="urgent-ticket-footer">
+                {% if ticket.asignado_a %}
+                    <span class="assigned">👤 {{ ticket.asignado_a.first_name|default:ticket.asignado_a.username }}</span>
+                {% else %}
+                    <span class="not-assigned">⚠️ Sin asignar</span>
+                {% endif %}
+                <a href="{% url 'ticket_detalle' ticket.id %}" class="btn-urgent-view">Ver →</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Formulario de búsqueda avanzada -->
 <div class="search-section">
@@ -55,8 +143,8 @@
         </div>
         <div class="row row-second">
             <div class="col-md-3">
-                <label>Área</label>
-                {{ form.area_afectada }}
+                <label>Categoría</label>
+                {{ form.categoria }}
             </div>
             <div class="col-md-3">
                 <label>Técnico asignado</label>
@@ -118,7 +206,7 @@
                         <span>{{ ticket.creador.first_name|default:ticket.creador.username }} {{ ticket.creador.last_name }}</span>
                     </div>
                 </td>
-                <td>{{ ticket.area_afectada }}</td>
+                <td>{{ ticket.categoria.nombre }}</td>
                 <td>
                     <span class="priority-badge priority-{{ ticket.prioridad|lower }}">
                         {{ ticket.prioridad }}
@@ -138,14 +226,16 @@
                 <td>
                     <div class="action-buttons">
                         <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-view">👁️ Ver</a>
-                        {% with first_group=user.groups.all|first %}
-                        {% if first_group.name == 'Técnico' and ticket.asignado_a == user %}
+                        {% if permisos.puede_cambiar_estado and ticket.asignado_a == user %}
+                        <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-edit">🔄 Cambiar</a>
+                        {% elif permisos.es_tecnico and ticket.asignado_a == user %}
                         <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-edit">🔄 Cambiar</a>
                         {% endif %}
-                        {% if first_group.name == 'Administrador' and not ticket.asignado_a %}
+                        {% if permisos.puede_asignar and not ticket.asignado_a %}
                         <a href="{% url 'asignar_ticket' ticket.id %}" class="btn btn-assign">👤 Asignar</a>
+                        {% elif permisos.puede_autoasignarse and not ticket.asignado_a and ticket.creador != user %}
+                        <a href="{% url 'autoasignar_ticket' ticket.id %}" class="btn btn-autoassign" title="Autoasignarme este ticket">✋ Tomar</a>
                         {% endif %}
-                        {% endwith %}
                     </div>
                 </td>
             </tr>
@@ -181,6 +271,49 @@
 
 {% block extra_js %}
 <script>
+// Calcular y animar barras de progreso
+document.addEventListener('DOMContentLoaded', function() {
+    const total = {{ total_tickets }};
+    const stats = {
+        pendientes: {{ pendientes_count }},
+        proceso: {{ en_proceso_count }},
+        resueltos: {{ resueltos_count }},
+        cerrados: {{ cerrados_count }},
+        sla: {{ sla_excedido_count }}
+    };
+    
+    // Calcular porcentajes y animar barras
+    setTimeout(() => {
+        // Pendientes
+        const pendientesPercent = total > 0 ? (stats.pendientes / total * 100).toFixed(1) : 0;
+        document.querySelector('.pendientes-progress').style.setProperty('--progress-width', pendientesPercent + '%');
+        
+        // En Proceso
+        const procesoPercent = total > 0 ? (stats.proceso / total * 100).toFixed(1) : 0;
+        document.querySelector('.proceso-progress').style.setProperty('--progress-width', procesoPercent + '%');
+        
+        // Resueltos
+        const resueltosPercent = total > 0 ? (stats.resueltos / total * 100).toFixed(1) : 0;
+        document.querySelector('.resueltos-progress').style.setProperty('--progress-width', resueltosPercent + '%');
+        
+        // Cerrados
+        const cerradosPercent = total > 0 ? (stats.cerrados / total * 100).toFixed(1) : 0;
+        document.querySelector('.cerrados-progress').style.setProperty('--progress-width', cerradosPercent + '%');
+        
+        // SLA Excedido
+        const slaPercent = total > 0 ? (stats.sla / total * 100).toFixed(1) : 0;
+        document.querySelector('.sla-progress').style.setProperty('--progress-width', slaPercent + '%');
+        
+        // Actualizar textos de porcentaje
+        document.querySelectorAll('.stat-percentage').forEach(el => {
+            const count = parseInt(el.dataset.count);
+            const totalVal = parseInt(el.dataset.total);
+            const percent = totalVal > 0 ? (count / totalVal * 100).toFixed(1) : 0;
+            el.textContent = percent + '%';
+        });
+    }, 300);
+});
+
 // Detectar si es primera visita al dashboard o navegación interna
 (function() {
     const mainContent = document.querySelector('.main-content');

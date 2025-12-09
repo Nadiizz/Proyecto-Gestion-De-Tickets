@@ -203,7 +203,7 @@
             </p>
             
             <!-- Urgent Banner (if critical) -->
-            {% if notificacion.prioridad == 'critica' %}
+            {% if notificacion.prioridad == 'critica' or ticket.prioridad == 'critica' %}
             <div class="urgent-banner">
                 <p>⚠️ Este es un ticket CRÍTICO que requiere atención inmediata</p>
             </div>
@@ -232,7 +232,7 @@
                 <div class="detail-row">
                     <span class="detail-label">Prioridad:</span>
                     <span class="detail-value">
-                        {% if ticket.prioridad == 'urgente' %}
+                        {% if ticket.prioridad == 'critica' %}
                             <span class="priority-critical">🔴 CRÍTICA</span>
                         {% elif ticket.prioridad == 'alta' %}
                             <span class="priority-high">🟠 ALTA</span>
@@ -249,10 +249,10 @@
                     <span class="detail-value">{{ ticket.get_estado_display }}</span>
                 </div>
                 
-                {% if ticket.creado_por %}
+                {% if ticket.creador %}
                 <div class="detail-row">
                     <span class="detail-label">Creado por:</span>
-                    <span class="detail-value">{{ ticket.creado_por.get_full_name }}</span>
+                    <span class="detail-value">{{ ticket.creador.get_full_name|default:ticket.creador.username }}</span>
                 </div>
                 {% endif %}
                 

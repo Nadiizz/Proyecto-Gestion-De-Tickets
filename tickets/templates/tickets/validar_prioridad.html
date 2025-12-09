@@ -1,0 +1,170 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/validar_prioridad.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="validacion-detalle-container">
+    <header class="validacion-header">
+        <a href="{% url 'lista_tickets_pendientes_validacion' %}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            Volver a la lista
+        </a>
+        <h1><i class="fas fa-balance-scale"></i> Validar Prioridad</h1>
+    </header>
+
+    <div class="validacion-content">
+        <!-- Información del Ticket -->
+        <section class="ticket-info-section">
+            <div class="ticket-header-info">
+                <div class="ticket-id-badge">#{{ ticket.id }}</div>
+                <h2 class="ticket-titulo">{{ ticket.titulo }}</h2>
+            </div>
+            
+            <div class="ticket-descripcion-completa">
+                <h4><i class="fas fa-align-left"></i> Descripción</h4>
+                <p>{{ ticket.descripcion }}</p>
+            </div>
+            
+            <div class="ticket-metadata">
+                <div class="meta-grid">
+                    <div class="meta-card">
+                        <i class="fas fa-user"></i>
+                        <span class="meta-label">Creado por</span>
+                        <span class="meta-value">{{ ticket.creador.get_full_name|default:ticket.creador.username }}</span>
+                    </div>
+                    <div class="meta-card">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="meta-label">Fecha de creación</span>
+                        <span class="meta-value">{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    {% if ticket.categoria %}
+                    <div class="meta-card">
+                        <i class="fas fa-folder"></i>
+                        <span class="meta-label">Categoría</span>
+                        <span class="meta-value">{{ ticket.categoria.nombre }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="meta-card">
+                        <i class="fas fa-tag"></i>
+                        <span class="meta-label">Tipo</span>
+                        <span class="meta-value">{{ ticket.get_tipo_display }}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel de Detección Automática -->
+        <section class="deteccion-automatica-section">
+            <h3><i class="fas fa-robot"></i> Análisis Automático de Prioridad</h3>
+            
+            <div class="deteccion-resultado">
+                <div class="prioridad-detectada prioridad-{{ prioridad_detectada }}">
+                    <span class="prioridad-label">Prioridad Detectada:</span>
+                    <span class="prioridad-valor">
+                        {% if prioridad_detectada == 'critica' %}
+                            <i class="fas fa-fire"></i> CRÍTICA
+                        {% elif prioridad_detectada == 'alta' %}
+                            <i class="fas fa-arrow-up"></i> ALTA
+                        {% elif prioridad_detectada == 'media' %}
+                            <i class="fas fa-minus"></i> MEDIA
+                        {% else %}
+                            <i class="fas fa-arrow-down"></i> BAJA
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="confianza-nivel confianza-{{ nivel_confianza }}">
+                    <span class="confianza-label">Nivel de Confianza:</span>
+                    <span class="confianza-valor">
+                        {% if nivel_confianza == 'alta' %}
+                            <i class="fas fa-check-double"></i> Alta
+                        {% elif nivel_confianza == 'media' %}
+                            <i class="fas fa-check"></i> Media
+                        {% else %}
+                            <i class="fas fa-question"></i> Baja
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            {% if palabras_encontradas %}
+            <div class="palabras-clave-detectadas">
+                <h4><i class="fas fa-key"></i> Palabras Clave Detectadas</h4>
+                <div class="palabras-tags">
+                    {% for palabra in palabras_encontradas %}
+                    <span class="palabra-tag">{{ palabra }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="palabras-clave-detectadas no-palabras">
+                <p><i class="fas fa-info-circle"></i> No se detectaron palabras clave específicas. La prioridad se asignó por defecto.</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Formulario de Validación -->
+        <section class="validacion-form-section">
+            <h3><i class="fas fa-gavel"></i> Decisión del Supervisor</h3>
+            
+            <form method="post" class="validacion-form">
+                {% csrf_token %}
+                
+                <div class="opciones-validacion">
+                    <!-- Opción: Aprobar Prioridad Detectada -->
+                    <div class="opcion-card opcion-aprobar">
+                        <div class="opcion-header">
+                            <i class="fas fa-thumbs-up"></i>
+                            <h4>Aprobar Prioridad Detectada</h4>
+                        </div>
+                        <p class="opcion-descripcion">
+                            Confirmar que la prioridad <strong>{{ prioridad_detectada|upper }}</strong> 
+                            detectada automáticamente es correcta.
+                        </p>
+                        <button type="submit" name="accion" value="aprobar" class="btn-aprobar">
+                            <i class="fas fa-check"></i>
+                            Aprobar como {{ prioridad_detectada|upper }}
+                        </button>
+                    </div>
+                    
+                    <!-- Opción: Modificar Prioridad -->
+                    <div class="opcion-card opcion-modificar">
+                        <div class="opcion-header">
+                            <i class="fas fa-edit"></i>
+                            <h4>Modificar Prioridad</h4>
+                        </div>
+                        <p class="opcion-descripcion">
+                            Si consideras que la prioridad detectada no es correcta, 
+                            selecciona la prioridad adecuada:
+                        </p>
+                        <div class="selector-prioridad">
+                            <select name="nueva_prioridad" id="nueva_prioridad" class="prioridad-select">
+                                {% for valor, nombre in prioridades %}
+                                <option value="{{ valor }}" {% if valor == prioridad_detectada %}selected{% endif %}>
+                                    {{ nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" name="accion" value="modificar" class="btn-modificar">
+                            <i class="fas fa-save"></i>
+                            Guardar Nueva Prioridad
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
+        
+        <!-- Enlace al ticket completo -->
+        <div class="acciones-adicionales">
+            <a href="{% url 'ticket_detalle' ticket.id %}" class="btn-ver-completo">
+                <i class="fas fa-external-link-alt"></i>
+                Ver Ticket Completo
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

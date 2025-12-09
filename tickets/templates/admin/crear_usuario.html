@@ -93,16 +93,18 @@
         
         <div class="form-section">
             <h3>🔑 Permisos y Roles</h3>
+            <p class="help-text">Seleccione un grupo tradicional O un rol personalizado. Si selecciona un rol personalizado, el grupo no es necesario.</p>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label for="grupo">Grupo</label>
-                    <select id="grupo" name="grupo" class="form-control" required>
-                        <option value="">-- Seleccionar grupo --</option>
+                    <label for="grupo">Grupo Tradicional</label>
+                    <select id="grupo" name="grupo" class="form-control">
+                        <option value="">-- Sin grupo tradicional --</option>
                         {% for grupo in grupos %}
                             <option value="{{ grupo.id }}">{{ grupo.name }}</option>
                         {% endfor %}
                     </select>
+                    <small class="help-text">Requerido solo si no tiene rol personalizado</small>
                 </div>
                 
                 <div class="form-group">
@@ -113,6 +115,7 @@
                             <option value="{{ rol.id }}">{{ rol.nombre }}</option>
                         {% endfor %}
                     </select>
+                    <small class="help-text">Si selecciona un rol, se usarán sus permisos</small>
                 </div>
             </div>
         </div>
@@ -123,4 +126,41 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const grupoSelect = document.getElementById('grupo');
+    const rolSelect = document.getElementById('rol_personalizado');
+    
+    // Cuando cambia el rol personalizado
+    rolSelect.addEventListener('change', function() {
+        if (this.value) {
+            // Si hay rol personalizado, el grupo no es requerido
+            grupoSelect.removeAttribute('required');
+            grupoSelect.closest('.form-group').querySelector('label').classList.remove('required');
+        } else if (!grupoSelect.value) {
+            // Si no hay rol ni grupo, el grupo es requerido
+            grupoSelect.setAttribute('required', 'required');
+            grupoSelect.closest('.form-group').querySelector('label').classList.add('required');
+        }
+    });
+    
+    // Cuando cambia el grupo
+    grupoSelect.addEventListener('change', function() {
+        if (!this.value && !rolSelect.value) {
+            // Si no hay grupo ni rol, el grupo es requerido
+            grupoSelect.setAttribute('required', 'required');
+            grupoSelect.closest('.form-group').querySelector('label').classList.add('required');
+        }
+    });
+    
+    // Validación antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!grupoSelect.value && !rolSelect.value) {
+            e.preventDefault();
+            alert('Debe seleccionar al menos un Grupo tradicional o un Rol personalizado.');
+        }
+    });
+});
+</script>
 {% endblock %}

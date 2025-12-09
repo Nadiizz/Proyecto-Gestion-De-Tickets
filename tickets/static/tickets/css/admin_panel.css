@@ -1,0 +1,288 @@
+/* ===== ANIMACIONES DE ENTRADA ===== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideInStagger {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== HEADER DEL ADMIN ===== */
+.admin-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.admin-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+/* ===== GRID DE ESTADÍSTICAS (PREFIJADO) ===== */
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.admin-stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    border-left: 4px solid;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: scaleIn 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+.admin-stat-card:nth-child(1) { animation-delay: 0.1s; }
+.admin-stat-card:nth-child(2) { animation-delay: 0.2s; }
+.admin-stat-card:nth-child(3) { animation-delay: 0.3s; }
+
+.admin-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+}
+
+.admin-stat-card.primary { border-color: #3498db; }
+.admin-stat-card.success { border-color: #2ecc71; }
+.admin-stat-card.warning { border-color: #f39c12; }
+.admin-stat-card.info { border-color: #9b59b6; }
+
+.admin-stat-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.admin-stat-value {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+/* ===== ACCIONES RÁPIDAS ===== */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+    animation: fadeInUp 0.6s ease-out 0.3s forwards;
+    opacity: 0;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: white;
+    border: 2px solid #ecf0f1;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #2c3e50;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    animation: slideInStagger 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+.action-btn:nth-child(1) { animation-delay: 0.4s; }
+.action-btn:nth-child(2) { animation-delay: 0.5s; }
+.action-btn:nth-child(3) { animation-delay: 0.6s; }
+.action-btn:nth-child(4) { animation-delay: 0.7s; }
+.action-btn:nth-child(5) { animation-delay: 0.8s; }
+.action-btn:nth-child(6) { animation-delay: 0.9s; }
+
+.action-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+}
+
+/* ===== SECCIONES RECIENTES ===== */
+.recent-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+    animation: fadeInUp 0.6s ease-out 0.5s forwards;
+    opacity: 0;
+}
+
+.recent-section h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.3rem;
+    color: #2c3e50;
+}
+
+.recent-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.recent-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ecf0f1;
+    transition: background 0.2s;
+    animation: slideInStagger 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+.recent-item:nth-child(1) { animation-delay: 0.6s; }
+.recent-item:nth-child(2) { animation-delay: 0.7s; }
+.recent-item:nth-child(3) { animation-delay: 0.8s; }
+.recent-item:nth-child(4) { animation-delay: 0.9s; }
+.recent-item:nth-child(5) { animation-delay: 1.0s; }
+
+.recent-item:last-child {
+    border-bottom: none;
+}
+
+.recent-item:hover {
+    background: #f8f9fa;
+}
+
+/* ===== INFO DE USUARIO ===== */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    font-size: 1.1rem;
+    border: 2px solid #667eea;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.user-avatar.initial {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.user-info strong {
+    color: #2c3e50;
+}
+
+.user-info span {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* ===== BADGES ===== */
+.user-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-top: 0.3rem;
+}
+
+.badge-admin { background: #e3f2fd; color: #1976d2; }
+.badge-técnico { background: #fff3e0; color: #f57c00; }
+.badge-usuario { background: #f3e5f5; color: #7b1fa2; }
+
+.invitation-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-pendiente { background: #fff3cd; color: #856404; }
+.badge-aceptada { background: #d4edda; color: #155724; }
+.badge-expirada { background: #f8d7da; color: #721c24; }
+.badge-cancelada { background: #e2e3e5; color: #383d41; }
+
+/* ===== ESTADOS VACÍOS ===== */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #7f8c8d;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 1rem;
+}

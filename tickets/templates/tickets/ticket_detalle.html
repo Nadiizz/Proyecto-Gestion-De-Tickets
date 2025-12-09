@@ -36,8 +36,22 @@
             </div>
             <div class="action-buttons">
                 <a href="{% url 'ticket_list' %}" class="btn btn-secondary">← Volver al Dashboard</a>
+                
+                {# Botón cambiar estado para técnicos asignados #}
                 {% with first_group=user.groups.all|first %}
                 {% if first_group.name == 'Técnico' and ticket.asignado_a == user %}
+                <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-warning">🔄 Cambiar Estado</a>
+                {% endif %}
+                {% endwith %}
+                
+                {# Botón para que el creador cierre el ticket cuando está resuelto #}
+                {% if ticket.creador == user and ticket.estado == 'resuelto' %}
+                <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-success">✅ Confirmar Solución</a>
+                {% endif %}
+                
+                {# Botón para administradores #}
+                {% with first_group=user.groups.all|first %}
+                {% if first_group.name == 'Administrador' %}
                 <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-warning">🔄 Cambiar Estado</a>
                 {% endif %}
                 {% endwith %}
@@ -50,9 +64,9 @@
                 <h3>👤 Creado por</h3>
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                     {% if ticket.creador.perfilusuario.foto_perfil %}
-                        <img src="{{ ticket.creador.perfilusuario.foto_perfil.url }}" alt="{{ ticket.creador.username }}" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                        <img src="{{ ticket.creador.perfilusuario.foto_perfil.url }}" alt="{{ ticket.creador.username }}" style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
                     {% else %}
-                        <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; border: 2px solid #667eea;">{{ ticket.creador.first_name|first|upper|default:ticket.creador.username|first|upper }}</div>
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; border: 2px solid #667eea;">{{ ticket.creador.first_name|first|upper|default:ticket.creador.username|first|upper }}</div>
                     {% endif %}
                     <p style="margin: 0;">{{ ticket.creador.first_name|default:ticket.creador.username }} {{ ticket.creador.last_name }}</p>
                 </div>
@@ -63,20 +77,34 @@
                     {% if ticket.asignado_a %}
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             {% if ticket.asignado_a.perfilusuario.foto_perfil %}
-                                <img src="{{ ticket.asignado_a.perfilusuario.foto_perfil.url }}" alt="{{ ticket.asignado_a.username }}" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                                <img src="{{ ticket.asignado_a.perfilusuario.foto_perfil.url }}" alt="{{ ticket.asignado_a.username }}" style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
                             {% else %}
-                                <div style="width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; border: 2px solid #667eea;">{{ ticket.asignado_a.first_name|first|upper|default:ticket.asignado_a.username|first|upper }}</div>
+                                <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; border: 2px solid #667eea;">{{ ticket.asignado_a.first_name|first|upper|default:ticket.asignado_a.username|first|upper }}</div>
                             {% endif %}
                             <span>{{ ticket.asignado_a.first_name|default:ticket.asignado_a.username }} {{ ticket.asignado_a.last_name }}</span>
                         </div>
+                        {% if puede_autoasignarse and ticket_asignado_a_otro %}
+                        <div style="margin-top: 0.75rem;">
+                            <a href="{% url 'autoasignar_ticket' ticket.id %}" class="btn-autoasignar" style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%); color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(230, 126, 34, 0.3);">
+                                🔄 Tomar este ticket
+                            </a>
+                        </div>
+                        {% endif %}
                     {% else %}
                         <span class="text-danger">Sin asignar</span>
+                        {% if puede_autoasignarse %}
+                        <div style="margin-top: 0.75rem;">
+                            <a href="{% url 'autoasignar_ticket' ticket.id %}" class="btn-autoasignar" style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);">
+                                ✋ Autoasignarme
+                            </a>
+                        </div>
+                        {% endif %}
                     {% endif %}
                 </p>
             </div>
             <div class="info-card">
                 <h3>🏢 Área afectada</h3>
-                <p>{{ ticket.area_afectada }}</p>
+                <p>{{ ticket.categoria.nombre }}</p>
             </div>
             <div class="info-card">
                 <h3>📅 Fecha creación</h3>
@@ -193,11 +221,12 @@
                 {% for h in historial %}
                 <div class="history-item" data-estado="{{ h.estado_nuevo|lower }}">
                     <div class="history-icon">
-                        {% if h.estado_nuevo == 'abierto' %}🔵{% endif %}
+                        {% if h.estado_nuevo == 'pendiente' %}⏳{% endif %}
+                        {% if h.estado_nuevo == 'asignado' %}📌{% endif %}
                         {% if h.estado_nuevo == 'en_progreso' %}🟡{% endif %}
                         {% if h.estado_nuevo == 'resuelto' %}🟢{% endif %}
                         {% if h.estado_nuevo == 'cerrado' %}⚫{% endif %}
-                        {% if h.estado_nuevo == 'cancelado' %}🔴{% endif %}
+                        {% if h.estado_nuevo == 'tiempo_excedido' %}⚠️{% endif %}
                     </div>
                     <div class="history-content">
                         <div class="history-header">
@@ -254,6 +283,32 @@
                     <div class="comment-content">
                         {{ c.mensaje|linebreaks }}
                     </div>
+                    
+                    {# Muestra archivos adjuntos del comentario si existen #}
+                    {% if c.archivos.all %}
+                    <div class="comment-attachments">
+                        {% for archivo in c.archivos.all %}
+                        <div class="comment-attachment-item">
+                            {% if archivo.es_imagen %}
+                                <a href="{{ archivo.archivo.url }}" target="_blank" class="comment-attachment-link">
+                                    <img src="{{ archivo.archivo.url }}" alt="{{ archivo.nombre_archivo }}" class="comment-attachment-image">
+                                </a>
+                            {% else %}
+                                <a href="{{ archivo.archivo.url }}" class="comment-attachment-link" download>
+                                    <span class="comment-file-icon">
+                                        {% if archivo.extension == '.pdf' %}📄{% endif %}
+                                        {% if archivo.extension in '.doc,.docx' %}📝{% endif %}
+                                        {% if archivo.extension in '.xls,.xlsx' %}📊{% endif %}
+                                        {% if archivo.extension == '.txt' %}📃{% endif %}
+                                        {% if archivo.extension not in '.pdf,.doc,.docx,.xls,.xlsx,.txt' %}📋{% endif %}
+                                    </span>
+                                    <span class="comment-file-name">{{ archivo.nombre_archivo }}</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
                 {% empty %}
                 {# Mensaje que aparece cuando no hay comentarios #}
