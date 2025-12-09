@@ -3,7 +3,7 @@
 ## Documentación Técnica del Proyecto
 
 **Versión:** 1.0  
-**Última actualización:** Diciembre 2024  
+**Última actualización:** Diciembre 2025
 **Framework:** Django 5.2.6  
 **Base de datos:** PostgreSQL
 
