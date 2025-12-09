@@ -232,8 +232,6 @@ TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 
 > **Nota:** Los usuarios deben enviar primero "join <sandbox>" al número de Twilio para activar el sandbox.
 
----
-
 ## ⏱️ SLA y Métricas
 
 ### Tiempos de SLA por Prioridad
@@ -406,3 +404,5 @@ python manage.py poblar_faqs
 ---
 
 **© 2024 Sistema de Gestión de Tickets - Coyahue**
+
+**Última actualización**: Diciembre 2025
