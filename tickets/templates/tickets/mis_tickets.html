@@ -1,0 +1,133 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/mis_tickets.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Marcar que estamos en página de mis tickets para animaciones
+    sessionStorage.setItem('inMisTickets', 'true');
+</script>
+{% endblock %}
+
+{% block content %}
+
+<div class="mis-tickets-container">
+    {# Header con estadísticas del usuario #}
+    <div class="page-header">
+        <h1>🎫 Mis Tickets</h1>
+        <p class="subtitle">Gestiona y califica tus solicitudes de soporte</p>
+    </div>
+
+    {# Tarjetas de estadísticas #}
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+                <h3>Total de Tickets</h3>
+                <p class="stat-number">{{ total_tickets }}</p>
+            </div>
+        </div>
+        <div class="stat-card abiertos">
+            <div class="stat-icon">🔓</div>
+            <div class="stat-info">
+                <h3>Abiertos</h3>
+                <p class="stat-number">{{ tickets_abiertos }}</p>
+            </div>
+        </div>
+        <div class="stat-card cerrados">
+            <div class="stat-icon">✅</div>
+            <div class="stat-info">
+                <h3>Cerrados</h3>
+                <p class="stat-number">{{ tickets_cerrados }}</p>
+            </div>
+        </div>
+        <div class="stat-card sin-calificar">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-info">
+                <h3>Por Calificar</h3>
+                <p class="stat-number">{{ tickets_sin_calificar }}</p>
+            </div>
+        </div>
+    </div>
+
+    {# Filtros #}
+    <div class="filters-section">
+        <form method="get" class="filters-form">
+            <div class="filter-group">
+                <label for="estado">🔍 Filtrar por estado:</label>
+                <select name="estado" id="estado" class="form-select" onchange="this.form.submit()">
+                    <option value="">Todos los estados</option>
+                    <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="en_progreso" {% if estado_filtro == 'en_progreso' %}selected{% endif %}>En Progreso</option>
+                    <option value="resuelto" {% if estado_filtro == 'resuelto' %}selected{% endif %}>Resuelto</option>
+                    <option value="cerrado" {% if estado_filtro == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                    <option value="tiempo_excedido" {% if estado_filtro == 'tiempo_excedido' %}selected{% endif %}>Tiempo Excedido</option>
+                </select>
+            </div>
+            {% if estado_filtro %}
+            <a href="{% url 'mis_tickets' %}" class="btn btn-secondary">Limpiar Filtros</a>
+            {% endif %}
+        </form>
+    </div>
+
+    {# Lista de tickets #}
+    <div class="tickets-section">
+        {% if tickets %}
+            <div class="tickets-grid">
+                {% for ticket in tickets %}
+                <div class="ticket-card">
+                    <div class="ticket-header">
+                        <div class="ticket-id">#{{ ticket.id }}</div>
+                        <div class="ticket-badges">
+                            <span class="badge badge-{{ ticket.estado }}">{{ ticket.get_estado_display }}</span>
+                            <span class="badge badge-priority-{{ ticket.prioridad }}">{{ ticket.get_prioridad_display }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-body">
+                        <h3 class="ticket-title">{{ ticket.titulo }}</h3>
+                        <div class="ticket-meta">
+                            <span>📅 {{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                            <span>📁 {{ ticket.get_tipo_display }}</span>
+                            <span>🏢 {{ ticket.categoria.nombre }}</span>
+                        </div>
+                        {% if ticket.asignado_a %}
+                        <div class="ticket-assigned">
+                            <span>👨‍💻 Asignado a: <strong>{{ ticket.asignado_a.username }}</strong></span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="ticket-footer">
+                        <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-primary">Ver Detalles</a>
+                        
+                        {# Mostrar calificación si ya fue calificado #}
+                        {% if ticket.calificacion_satisfaccion %}
+                            <div class="rating-display-mini">
+                                {% for i in "12345" %}
+                                    <span class="star-mini {% if forloop.counter <= ticket.calificacion_satisfaccion %}filled{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                        {% elif ticket.estado in 'resuelto|cerrado' %}
+                            {# Botón para calificar si está cerrado y no calificado #}
+                            <a href="{% url 'ticket_detalle' ticket.id %}#rating" class="btn btn-warning">⭐ Calificar</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <h2>No tienes tickets</h2>
+                <p>{% if estado_filtro %}No hay tickets con el filtro seleccionado{% else %}Aún no has creado ningún ticket de soporte{% endif %}</p>
+                <a href="{% url 'ticket_create' %}" class="btn btn-primary">Crear Primer Ticket</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

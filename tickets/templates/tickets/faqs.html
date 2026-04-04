@@ -1,0 +1,269 @@
+{# Página de Preguntas Frecuentes (FAQs) del sistema de tickets #}
+{# Incluye acordeones interactivos organizados por categorías #}
+{# VERSIÓN DINÁMICA - Lee FAQs desde la base de datos #}
+
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/faqs.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="faqs-container">
+    <!-- Header de la página -->
+    <div class="faqs-header">
+        <div class="header-content">
+            <h1>📚 Preguntas Frecuentes</h1>
+            <p>Encuentra respuestas a las dudas más comunes sobre el sistema de tickets</p>
+        </div>
+        
+        <!-- Buscador -->
+        <div class="faqs-search">
+            <form method="get" action="{% url 'faqs' %}" class="search-form">
+                <div class="search-input-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" 
+                           name="q" 
+                           value="{{ busqueda }}" 
+                           placeholder="Buscar en las preguntas frecuentes..."
+                           class="search-input"
+                           autocomplete="off">
+                    {% if busqueda %}
+                    <a href="{% url 'faqs' %}" class="clear-search" title="Limpiar búsqueda">✕</a>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn-search">Buscar</button>
+            </form>
+        </div>
+    </div>
+
+    {% if es_busqueda %}
+        {% if categorias_busqueda %}
+        <div class="search-results-info">
+            <p>📋 Mostrando resultados para: <strong>"{{ busqueda }}"</strong></p>
+        </div>
+        
+        <!-- FAQs filtradas por búsqueda -->
+        <div class="faqs-content">
+            {% for item in categorias_busqueda %}
+            <div class="faq-category" id="cat-{{ item.categoria.id }}">
+                <div class="category-header">
+                    <h2>{{ item.categoria.icono }} {{ item.categoria.nombre }}</h2>
+                    <span class="questions-count">{{ item.preguntas|length }} resultado{{ item.preguntas|length|pluralize:"s" }}</span>
+                </div>
+                
+                <div class="accordion">
+                    {% for pregunta in item.preguntas %}
+                    <div class="accordion-item">
+                        <button class="accordion-header" aria-expanded="false">
+                            <span class="question-text">{{ pregunta.pregunta }}</span>
+                            <span class="accordion-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6,9 12,15 18,9"></polyline>
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="accordion-content-inner">
+                                <div class="answer-text">{{ pregunta.respuesta|safe }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="search-results-info">
+            <div class="no-results">
+                <span class="no-results-icon">🔎</span>
+                <p>No se encontraron resultados para "<strong>{{ busqueda }}</strong>"</p>
+                <a href="{% url 'faqs' %}" class="btn-ver-todas">Ver todas las FAQs</a>
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+        {% if categorias %}
+        <!-- Navegación rápida por categorías -->
+        <div class="category-nav">
+            <span class="nav-label">Ir a:</span>
+            {% for categoria in categorias %}
+                {% if categoria.preguntas.all %}
+                <a href="#cat-{{ categoria.id }}" class="category-link">{{ categoria.icono }} {{ categoria.nombre }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- FAQs por categoría -->
+        <div class="faqs-content">
+            {% for categoria in categorias %}
+                {% if categoria.preguntas.all %}
+                <div class="faq-category" id="cat-{{ categoria.id }}">
+                    <div class="category-header">
+                        <h2>{{ categoria.icono }} {{ categoria.nombre }}</h2>
+                        <span class="questions-count">{{ categoria.preguntas.all|length }} pregunta{{ categoria.preguntas.all|length|pluralize:"s" }}</span>
+                    </div>
+                    
+                    <div class="accordion">
+                        {% for pregunta in categoria.preguntas.all %}
+                        <div class="accordion-item">
+                            <button class="accordion-header" aria-expanded="false">
+                                <span class="question-text">{{ pregunta.pregunta }}</span>
+                                <span class="accordion-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6,9 12,15 18,9"></polyline>
+                                    </svg>
+                                </span>
+                            </button>
+                            <div class="accordion-content">
+                                <div class="accordion-content-inner">
+                                    <div class="answer-text">{{ pregunta.respuesta|safe }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="search-results-info">
+            <div class="no-results">
+                <span class="no-results-icon">📋</span>
+                <p>Aún no hay preguntas frecuentes disponibles.</p>
+                <p class="text-muted">El equipo de soporte está trabajando en crear contenido útil.</p>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <!-- Sección de contacto -->
+    <div class="contact-section">
+        <div class="contact-card">
+            <div class="contact-icon">💬</div>
+            <div class="contact-content">
+                <h3>¿No encontraste lo que buscabas?</h3>
+                <p>Si tu duda no está resuelta aquí, crea un ticket de soporte y nuestro equipo te ayudará.</p>
+                <a href="{% url 'ticket_create' %}" class="btn-create-ticket">
+                    📋 Crear Ticket de Soporte
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver imágenes en grande -->
+<div class="image-modal" id="imageModal" onclick="closeImageModal()">
+    <button class="modal-close-btn" onclick="closeImageModal()">✕</button>
+    <img id="modalImage" src="" alt="Imagen ampliada">
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad de acordeón
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    
+    accordionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            
+            // Cerrar todos los demás acordeones en la misma categoría
+            const parentCategory = this.closest('.faq-category');
+            const allHeaders = parentCategory.querySelectorAll('.accordion-header');
+            
+            allHeaders.forEach(h => {
+                h.setAttribute('aria-expanded', 'false');
+                h.closest('.accordion-item').classList.remove('active');
+            });
+            
+            // Abrir/cerrar el actual
+            if (!isExpanded) {
+                this.setAttribute('aria-expanded', 'true');
+                this.closest('.accordion-item').classList.add('active');
+            }
+        });
+    });
+    
+    // Smooth scroll para navegación por categorías
+    const categoryLinks = document.querySelectorAll('.category-link');
+    categoryLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                const headerOffset = 100;
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+    
+    // Abrir automáticamente si hay hash en URL
+    const hash = window.location.hash;
+    if (hash) {
+        const targetCategory = document.querySelector(hash);
+        if (targetCategory) {
+            const firstAccordion = targetCategory.querySelector('.accordion-header');
+            if (firstAccordion) {
+                setTimeout(() => {
+                    firstAccordion.click();
+                }, 500);
+            }
+        }
+    }
+    
+    // =============================================
+    // Hacer clickeables las imágenes dentro de las respuestas
+    // =============================================
+    const answerImages = document.querySelectorAll('.answer-text img');
+    answerImages.forEach(img => {
+        img.classList.add('faq-image');
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', function() {
+            openImageModal(this.src);
+        });
+    });
+});
+
+// =============================================
+// Modal de imagen
+// =============================================
+function openImageModal(src) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    modalImg.src = src;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Cerrar modal con tecla Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+
+// Limpiar marca de dashboard
+sessionStorage.removeItem('inDashboard');
+</script>
+{% endblock %}

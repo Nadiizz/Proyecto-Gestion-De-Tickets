@@ -1,0 +1,511 @@
+/* ============================================
+   common.css - Estilos Comunes Reutilizables
+   ============================================
+   
+   Este archivo centraliza estilos que se repiten
+   en múltiples archivos CSS. Incluye:
+   - Botones estándar
+   - Elementos de formulario
+   - Estados y efectos visuales
+*/
+
+/* ============================================
+   BOTONES ESTÁNDAR
+   ============================================ */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    gap: 0.5rem;
+}
+
+/* Botón Principal - Púrpura Gradiente */
+.btn-submit,
+.btn-primary {
+    background: linear-gradient(135deg, #8e44ad 0%, #a855f7 100%);
+    color: white;
+}
+
+.btn-submit:hover,
+.btn-primary:hover {
+    background: linear-gradient(135deg, #7d3c98 0%, #9333ea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(162, 155, 254, 0.4);
+}
+
+.btn-submit:active,
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Botón Secundario - Gris */
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+    transform: translateY(-2px);
+}
+
+/* Botón de Éxito - Verde */
+.btn-success {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #229954;
+    transform: translateY(-2px);
+}
+
+/* Botón de Peligro - Rojo */
+.btn-danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+}
+
+/* Botón de Información - Azul */
+.btn-info,
+.btn-view {
+    background: #3498db;
+    color: white;
+}
+
+.btn-info:hover,
+.btn-view:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+/* Botón de Edición - Naranja */
+.btn-edit,
+.btn-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.btn-edit:hover,
+.btn-warning:hover {
+    background: #e67e22;
+    transform: translateY(-2px);
+}
+
+/* Botón de Asignación */
+.btn-assign {
+    background: #16a085;
+    color: white;
+}
+
+.btn-assign:hover {
+    background: #138d75;
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   ELEMENTOS DE FORMULARIO
+   ============================================ */
+
+.form-control,
+.form-select,
+textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #bdc3c7;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #8e44ad;
+    box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.1);
+}
+
+.form-control::placeholder {
+    color: #95a5a6;
+}
+
+.form-control:disabled,
+.form-select:disabled {
+    background-color: #ecf0f1;
+    color: #7f8c8d;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   ESTILOS DE TEXTO Y UTILIDADES
+   ============================================ */
+
+.required {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.text-muted {
+    color: #7f8c8d;
+}
+
+.text-danger {
+    color: #e74c3c;
+}
+
+.text-success {
+    color: #27ae60;
+}
+
+.text-warning {
+    color: #f39c12;
+}
+
+.text-info {
+    color: #3498db;
+}
+
+/* ============================================
+   ALERTAS
+   ============================================ */
+
+.alert {
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.alert-success {
+    background-color: #d5f4e6;
+    color: #27ae60;
+    border: 1px solid #27ae60;
+}
+
+.alert-danger,
+.alert-error {
+    background-color: #fadbd8;
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+}
+
+.alert-warning {
+    background-color: #fdebd0;
+    color: #f39c12;
+    border: 1px solid #f39c12;
+}
+
+.alert-info {
+    background-color: #d6eaf8;
+    color: #3498db;
+    border: 1px solid #3498db;
+}
+
+.alert-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* ============================================
+   ESTADOS DE CONTADOR
+   ============================================ */
+
+.char-counter {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-top: 0.5rem;
+}
+
+.char-counter.warning {
+    color: #f39c12;
+    font-weight: 600;
+}
+
+.char-counter.error {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+/* ============================================
+   EFECTOS Y TRANSICIONES
+   ============================================ */
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* ============================================
+   CAMPANA DE NOTIFICACIONES
+   ============================================ */
+
+.notification-bell-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+}
+
+.notification-bell {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.3s ease;
+    padding: 0.5rem;
+}
+
+.notification-bell:hover {
+    transform: scale(1.1);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.notification-badge.hidden {
+    display: none;
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 350px;
+    max-width: 90vw;
+    margin-top: 10px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-dropdown.hidden {
+    display: none;
+}
+
+.notification-dropdown .dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.notification-dropdown .dropdown-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.notification-dropdown .btn-marcar-todos {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.3s;
+}
+
+.notification-dropdown .btn-marcar-todos:hover {
+    color: #1d4ed8;
+}
+
+.notification-dropdown .dropdown-body {
+    padding: 12px;
+}
+
+.notification-item {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 6px;
+    transition: background-color 0.3s;
+}
+
+.notification-item:hover {
+    background-color: #f3f4f6;
+}
+
+.notification-item .flex-1 {
+    flex: 1;
+    cursor: pointer;
+}
+
+.notification-item p {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.notification-item .font-semibold {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.notification-item .text-gray-600 {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.notification-item .text-gray-400 {
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+
+.notification-item button {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0;
+    transition: color 0.3s;
+}
+
+.notification-item button:hover {
+    color: #ef4444;
+}
+
+/* Badges de prioridad */
+.bg-red-100 {
+    background-color: #fee2e2;
+}
+
+.bg-orange-100 {
+    background-color: #fed7aa;
+}
+
+.bg-blue-100 {
+    background-color: #dbeafe;
+}
+
+.bg-green-100 {
+    background-color: #dcfce7;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-gray-500 {
+    color: #6b7280;
+}
+
+.py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.inline-block {
+    display: inline-block;
+}
+
+.px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.py-1 {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .form-control,
+    .form-select,
+    textarea {
+        font-size: 16px; /* Evita zoom en móvil */
+    }
+    
+    .notification-dropdown {
+        width: calc(100vw - 20px);
+        right: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .alert {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .notification-dropdown {
+        width: calc(100vw - 20px);
+        right: 10px;
+    }
+}
+

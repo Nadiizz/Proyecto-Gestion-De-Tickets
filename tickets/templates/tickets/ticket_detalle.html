@@ -11,6 +11,14 @@
 <link rel="stylesheet" href="{% static 'tickets/css/ticket_detalle.css' %}">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{% static 'tickets/js/ticket_detalle.js' %}"></script>
+<script>
+    // Limpiar marca de dashboard al visitar detalle de ticket
+    sessionStorage.removeItem('inDashboard');
+</script>
+{% endblock %}
+
 {% block content %}
 
 <div class="ticket-detail-container">
@@ -28,9 +36,25 @@
             </div>
             <div class="action-buttons">
                 <a href="{% url 'ticket_list' %}" class="btn btn-secondary">← Volver al Dashboard</a>
-                {% if user.groups.all.0.name == 'Técnico' and ticket.asignado_a == user %}
+                
+                {# Botón cambiar estado para técnicos asignados #}
+                {% with first_group=user.groups.all|first %}
+                {% if first_group.name == 'Técnico' and ticket.asignado_a == user %}
                 <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-warning">🔄 Cambiar Estado</a>
                 {% endif %}
+                {% endwith %}
+                
+                {# Botón para que el creador cierre el ticket cuando está resuelto #}
+                {% if ticket.creador == user and ticket.estado == 'resuelto' %}
+                <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-success">✅ Confirmar Solución</a>
+                {% endif %}
+                
+                {# Botón para administradores #}
+                {% with first_group=user.groups.all|first %}
+                {% if first_group.name == 'Administrador' %}
+                <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-warning">🔄 Cambiar Estado</a>
+                {% endif %}
+                {% endwith %}
             </div>
         </div>
 
@@ -38,26 +62,73 @@
         <div class="ticket-info-grid">
             <div class="info-card">
                 <h3>👤 Creado por</h3>
-                <p>{{ ticket.creador.username }}</p>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    {% if ticket.creador.perfilusuario.foto_perfil %}
+                        <img src="{{ ticket.creador.perfilusuario.foto_perfil.url }}" alt="{{ ticket.creador.username }}" style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                    {% else %}
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; border: 2px solid #667eea;">{{ ticket.creador.first_name|first|upper|default:ticket.creador.username|first|upper }}</div>
+                    {% endif %}
+                    <p style="margin: 0;">{{ ticket.creador.first_name|default:ticket.creador.username }} {{ ticket.creador.last_name }}</p>
+                </div>
             </div>
             <div class="info-card">
                 <h3>👨‍💻 Asignado a</h3>
                 <p>
                     {% if ticket.asignado_a %}
-                        {{ ticket.asignado_a.username }}
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            {% if ticket.asignado_a.perfilusuario.foto_perfil %}
+                                <img src="{{ ticket.asignado_a.perfilusuario.foto_perfil.url }}" alt="{{ ticket.asignado_a.username }}" style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                            {% else %}
+                                <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; border: 2px solid #667eea;">{{ ticket.asignado_a.first_name|first|upper|default:ticket.asignado_a.username|first|upper }}</div>
+                            {% endif %}
+                            <span>{{ ticket.asignado_a.first_name|default:ticket.asignado_a.username }} {{ ticket.asignado_a.last_name }}</span>
+                        </div>
+                        {% if puede_autoasignarse and ticket_asignado_a_otro %}
+                        <div style="margin-top: 0.75rem;">
+                            <a href="{% url 'autoasignar_ticket' ticket.id %}" class="btn-autoasignar" style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%); color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(230, 126, 34, 0.3);">
+                                🔄 Tomar este ticket
+                            </a>
+                        </div>
+                        {% endif %}
                     {% else %}
-                        <span style="color: #e74c3c;">Sin asignar</span>
+                        <span class="text-danger">Sin asignar</span>
+                        {% if puede_autoasignarse %}
+                        <div style="margin-top: 0.75rem;">
+                            <a href="{% url 'autoasignar_ticket' ticket.id %}" class="btn-autoasignar" style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);">
+                                ✋ Autoasignarme
+                            </a>
+                        </div>
+                        {% endif %}
                     {% endif %}
                 </p>
             </div>
             <div class="info-card">
                 <h3>🏢 Área afectada</h3>
-                <p>{{ ticket.area_afectada }}</p>
+                <p>{{ ticket.categoria.nombre }}</p>
             </div>
             <div class="info-card">
                 <h3>📅 Fecha creación</h3>
                 <p>{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
             </div>
+            {% with first_group=user.groups.all|first %}
+            {% if first_group.name == 'Técnico' or user.is_superuser %}
+            <div class="info-card">
+                <h3>⏰ Límite SLA</h3>
+                <p>
+                    {% if ticket.tiempo_limite_resolucion %}
+                        {{ ticket.tiempo_limite_resolucion|date:"d/m/Y H:i" }}
+                        {% if ticket.tiempo_limite_resolucion < now %}
+                            <br><span class="sla-excedido">⚠️ Excedido</span>
+                        {% else %}
+                            <br><span class="sla-cumplido">✓ Dentro del tiempo</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">No definido</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+            {% endwith %}
         </div>
     </div>
 
@@ -68,6 +139,76 @@
             {{ ticket.descripcion|linebreaks }}
         </div>
     </div>
+
+    {# Sección de calificación del servicio (solo para el creador si el ticket está cerrado) #}
+    {% if user == ticket.creador and ticket.estado in 'resuelto|cerrado' and ticket.asignado_a %}
+    <div class="rating-section" id="rating">
+        <h2>⭐ Calificar Servicio del Técnico</h2>
+        {% if ticket.calificacion_satisfaccion %}
+            <div class="rating-display">
+                <p>Ya calificaste el servicio del técnico <strong>{{ ticket.asignado_a.username }}</strong> con:</p>
+                <div class="stars-display">
+                    {% for i in "12345" %}
+                        <span class="star {% if forloop.counter <= ticket.calificacion_satisfaccion %}filled{% endif %}">★</span>
+                    {% endfor %}
+                </div>
+                <p class="rating-text">{{ ticket.calificacion_satisfaccion }} de 5 estrellas</p>
+            </div>
+        {% else %}
+            <form method="post" action="{% url 'calificar_ticket' ticket.id %}" class="rating-form">
+                {% csrf_token %}
+                <p>¿Cómo calificarías el servicio del técnico <strong>{{ ticket.asignado_a.username }}</strong>?</p>
+                <div class="stars-input">
+                    <input type="radio" name="calificacion" value="5" id="star5">
+                    <label for="star5" title="Excelente">★</label>
+                    <input type="radio" name="calificacion" value="4" id="star4">
+                    <label for="star4" title="Muy bueno">★</label>
+                    <input type="radio" name="calificacion" value="3" id="star3">
+                    <label for="star3" title="Bueno">★</label>
+                    <input type="radio" name="calificacion" value="2" id="star2">
+                    <label for="star2" title="Regular">★</label>
+                    <input type="radio" name="calificacion" value="1" id="star1">
+                    <label for="star1" title="Malo">★</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Enviar Calificación</button>
+            </form>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# Sección de archivos adjuntos del ticket #}
+    {% if archivos_ticket %}
+    <div class="ticket-attachments">
+        <h2>📎 Archivos Adjuntos</h2>
+        <div class="attachments-grid">
+            {% for archivo in archivos_ticket %}
+            <div class="attachment-card">
+                <div class="attachment-icon">
+                    {% if archivo.es_imagen %}
+                        <img src="{{ archivo.archivo.url }}" alt="{{ archivo.nombre_archivo }}" class="attachment-thumbnail">
+                    {% else %}
+                        <span class="file-icon">
+                            {% if archivo.extension == 'pdf' %}📄{% endif %}
+                            {% if archivo.extension in 'doc,docx' %}📝{% endif %}
+                            {% if archivo.extension in 'xls,xlsx' %}📊{% endif %}
+                            {% if archivo.extension == 'txt' %}📃{% endif %}
+                            {% if archivo.extension not in 'pdf,doc,docx,xls,xlsx,txt' %}📋{% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="attachment-info">
+                    <a href="{{ archivo.archivo.url }}" class="attachment-name" download>{{ archivo.nombre_archivo }}</a>
+                    <div class="attachment-meta">
+                        <span>👤 {{ archivo.subido_por.username }}</span>
+                        <span>📅 {{ archivo.fecha_subida|date:"d/m/Y H:i" }}</span>
+                    </div>
+                </div>
+                <a href="{{ archivo.archivo.url }}" class="btn-download" download>⬇️</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     {# Sección de comentarios e historial en dos columnas #}
     <div class="comments-history-section">
@@ -80,11 +221,12 @@
                 {% for h in historial %}
                 <div class="history-item" data-estado="{{ h.estado_nuevo|lower }}">
                     <div class="history-icon">
-                        {% if h.estado_nuevo == 'abierto' %}🔵{% endif %}
+                        {% if h.estado_nuevo == 'pendiente' %}⏳{% endif %}
+                        {% if h.estado_nuevo == 'asignado' %}📌{% endif %}
                         {% if h.estado_nuevo == 'en_progreso' %}🟡{% endif %}
                         {% if h.estado_nuevo == 'resuelto' %}🟢{% endif %}
                         {% if h.estado_nuevo == 'cerrado' %}⚫{% endif %}
-                        {% if h.estado_nuevo == 'cancelado' %}🔴{% endif %}
+                        {% if h.estado_nuevo == 'tiempo_excedido' %}⚠️{% endif %}
                     </div>
                     <div class="history-content">
                         <div class="history-header">
@@ -125,14 +267,48 @@
                 {% for c in comentarios %}
                 <div class="comment-item">
                     <div class="comment-header">
-                        {# Muestra autor y fecha del comentario #}
-                        <span class="comment-author">{{ c.autor.username }}</span>
-                        <span class="comment-date">{{ c.fecha|date:"d/m/Y H:i" }}</span>
+                        {% if c.autor.perfilusuario.foto_perfil %}
+                            <img src="{{ c.autor.perfilusuario.foto_perfil.url }}" alt="{{ c.autor.username }}" class="comment-avatar">
+                        {% else %}
+                            <div class="comment-avatar initial">{{ c.autor.first_name|first|upper|default:c.autor.username|first|upper }}</div>
+                        {% endif %}
+                        <div class="comment-info">
+                            <div class="comment-author-row">
+                                <span class="comment-author">{{ c.autor.first_name|default:c.autor.username }} {{ c.autor.last_name }}</span>
+                                <span class="comment-date">{{ c.fecha|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
                     </div>
                     {# Muestra contenido del comentario #}
                     <div class="comment-content">
                         {{ c.mensaje|linebreaks }}
                     </div>
+                    
+                    {# Muestra archivos adjuntos del comentario si existen #}
+                    {% if c.archivos.all %}
+                    <div class="comment-attachments">
+                        {% for archivo in c.archivos.all %}
+                        <div class="comment-attachment-item">
+                            {% if archivo.es_imagen %}
+                                <a href="{{ archivo.archivo.url }}" target="_blank" class="comment-attachment-link">
+                                    <img src="{{ archivo.archivo.url }}" alt="{{ archivo.nombre_archivo }}" class="comment-attachment-image">
+                                </a>
+                            {% else %}
+                                <a href="{{ archivo.archivo.url }}" class="comment-attachment-link" download>
+                                    <span class="comment-file-icon">
+                                        {% if archivo.extension == '.pdf' %}📄{% endif %}
+                                        {% if archivo.extension in '.doc,.docx' %}📝{% endif %}
+                                        {% if archivo.extension in '.xls,.xlsx' %}📊{% endif %}
+                                        {% if archivo.extension == '.txt' %}📃{% endif %}
+                                        {% if archivo.extension not in '.pdf,.doc,.docx,.xls,.xlsx,.txt' %}📋{% endif %}
+                                    </span>
+                                    <span class="comment-file-name">{{ archivo.nombre_archivo }}</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
                 {% empty %}
                 {# Mensaje que aparece cuando no hay comentarios #}
@@ -145,11 +321,34 @@
     {# Formulario para agregar nuevos comentarios al ticket #}
     <div class="comment-form">
         <h3 class="section-title">✍️ Agregar Comentario</h3>
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="form-group">
                 {# Área de texto para escribir el comentario #}
                 <textarea name="mensaje" class="form-textarea" placeholder="Escribe tu comentario aquí..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="archivos_comentario" class="form-label">📎 Archivos Adjuntos (opcional)</label>
+                <div class="file-upload-zone" id="comment-file-upload-zone">
+                    <div class="file-upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h3 class="upload-title">Selecciona o arrastra archivos aquí</h3>
+                        <p class="upload-description">Haz clic para explorar o arrastra los archivos</p>
+                        <input type="file" 
+                               name="archivos_comentario" 
+                               id="archivos_comentario" 
+                               class="file-input-hidden" 
+                               accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls"
+                               multiple>
+                        <button type="button" class="btn-upload" onclick="document.getElementById('archivos_comentario').click()">
+                            <span class="btn-upload-icon">📤</span> Seleccionar Archivos
+                        </button>
+                    </div>
+                </div>
+                <div id="comment-file-preview" class="file-preview-container"></div>
+                <div class="help-text">
+                    💡 <strong>Tip:</strong> Puedes seleccionar múltiples archivos o arrastrarlos directamente aquí.
+                </div>
             </div>
             {# Botón para publicar el comentario #}
             <button type="submit" class="btn btn-primary">📤 Publicar Comentario</button>

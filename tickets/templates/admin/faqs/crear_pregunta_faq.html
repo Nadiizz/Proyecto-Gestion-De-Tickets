@@ -1,0 +1,860 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Crear Pregunta FAQ - Panel Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_faqs.css' %}">
+<style>
+    /* Estilos específicos del formulario de pregunta */
+    .form-card {
+        max-width: 800px;
+    }
+    
+    .toolbar-group {
+        display: flex;
+        gap: 0.25rem;
+        padding-right: 0.75rem;
+        margin-right: 0.5rem;
+        border-right: 1px solid #dee2e6;
+    }
+    
+    .toolbar-group:last-child {
+        border-right: none;
+    }
+    
+    .editor-tips {
+        margin-top: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: #e7f3ff;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: #0c5460;
+    }
+    
+    .file-upload-area {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: white;
+    }
+    
+    .file-upload-area:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+    }
+    
+    .file-upload-area.has-file {
+        border-color: #28a745;
+        background: #f0fff4;
+    }
+    
+    .upload-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-text {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .upload-subtext {
+        color: #999;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+    
+    .image-preview {
+        margin-top: 1rem;
+        display: none;
+    }
+    
+    .image-preview.active {
+        display: block;
+    }
+    
+    .image-preview img {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .image-preview-info {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #666;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .btn-remove-image {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    
+    .btn-remove-image:hover {
+        background: #c82333;
+    }
+    
+    /* Modal para insertar video */
+    .video-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+    
+    .video-modal-overlay.active {
+        display: flex;
+    }
+    
+    .video-modal {
+        background: white;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease;
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    .video-modal-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .video-modal-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #333;
+    }
+    
+    .video-modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #666;
+        padding: 0;
+        line-height: 1;
+    }
+    
+    .video-modal-close:hover {
+        color: #333;
+    }
+    
+    .video-modal-body {
+        padding: 1.5rem;
+    }
+    
+    .video-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+    }
+    
+    .video-tab {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e9ecef;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    
+    .video-tab:hover {
+        border-color: #667eea;
+    }
+    
+    .video-tab.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+        color: white;
+    }
+    
+    .video-tab-content {
+        display: none;
+    }
+    
+    .video-tab-content.active {
+        display: block;
+    }
+    
+    .video-input-group {
+        margin-bottom: 1rem;
+    }
+    
+    .video-input-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #444;
+    }
+    
+    .video-input-group input[type="text"],
+    .video-input-group input[type="url"] {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: border-color 0.2s;
+    }
+    
+    .video-input-group input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .video-input-group small {
+        display: block;
+        margin-top: 0.4rem;
+        color: #888;
+        font-size: 0.8rem;
+    }
+    
+    .video-file-upload {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .video-file-upload:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+    }
+    
+    .video-file-upload.has-file {
+        border-color: #28a745;
+        background: #f0fff4;
+    }
+    
+    .video-file-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .video-file-text {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .video-file-selected {
+        margin-top: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: #e7f3ff;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #0c5460;
+        display: none;
+    }
+    
+    .video-file-selected.active {
+        display: block;
+    }
+    
+    .video-modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e9ecef;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+    
+    .btn-video-cancel {
+        padding: 0.6rem 1.25rem;
+        border: 2px solid #e9ecef;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+    
+    .btn-video-cancel:hover {
+        background: #f8f9fa;
+    }
+    
+    .btn-video-insert {
+        padding: 0.6rem 1.25rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .btn-video-insert:hover {
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        {% if categoria_seleccionada %}
+        <a href="{% url 'admin_preguntas_faq' categoria_seleccionada.id %}" class="btn btn-outline-secondary">
+            ← Volver a {{ categoria_seleccionada.nombre }}
+        </a>
+        {% else %}
+        <a href="{% url 'admin_faqs' %}" class="btn btn-outline-secondary">
+            ← Volver a FAQs
+        </a>
+        {% endif %}
+    </div>
+    
+    <div class="form-card">
+        <div class="form-header">
+            <h1>➕ Nueva Pregunta FAQ</h1>
+            <p>Agrega una nueva pregunta frecuente al sistema</p>
+        </div>
+        
+        <form method="POST" id="faqForm">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="categoria" class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
+                <select class="form-select" id="categoria" name="categoria" required>
+                    <option value="">Selecciona una categoría</option>
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria.id }}" {% if categoria_seleccionada and categoria_seleccionada.id == categoria.id %}selected{% endif %}>
+                        {{ categoria.icono }} {{ categoria.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="pregunta" class="form-label fw-bold">Pregunta <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="pregunta" name="pregunta" required maxlength="300" placeholder="Ej: ¿Cómo puedo crear un nuevo ticket?">
+                <small class="text-muted">Escribe la pregunta tal como la haría un usuario</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Respuesta <span class="text-danger">*</span></label>
+                
+                <!-- Editor WYSIWYG -->
+                <div class="editor-container">
+                    <div class="editor-toolbar">
+                        <div class="toolbar-group">
+                            <button type="button" class="toolbar-btn" onclick="formatDoc('bold')" title="Negrita (Ctrl+B)">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" onclick="formatDoc('italic')" title="Cursiva (Ctrl+I)">
+                                <em>I</em>
+                            </button>
+                            <button type="button" class="toolbar-btn" onclick="formatDoc('underline')" title="Subrayado (Ctrl+U)">
+                                <u>U</u>
+                            </button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button type="button" class="toolbar-btn" onclick="formatDoc('insertUnorderedList')" title="Lista con viñetas">
+                                •—
+                            </button>
+                            <button type="button" class="toolbar-btn" onclick="formatDoc('insertOrderedList')" title="Lista numerada">
+                                1.
+                            </button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button type="button" class="toolbar-btn" onclick="insertKbd()" title="Tecla de teclado">
+                                ⌨
+                            </button>
+                            <button type="button" class="toolbar-btn" onclick="formatDoc('removeFormat')" title="Quitar formato">
+                                ✕
+                            </button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button type="button" class="toolbar-btn" onclick="document.getElementById('inlineImageInput').click()" title="Insertar imagen en el texto">
+                                🖼️
+                            </button>
+                            <button type="button" class="toolbar-btn" onclick="openVideoModal()" title="Insertar video">
+                                🎬
+                            </button>
+                        </div>
+                    </div>
+                    <div class="editor-content" 
+                         id="editorContent" 
+                         contenteditable="true"
+                         data-placeholder="Escribe aquí la respuesta..."></div>
+                </div>
+                
+                <!-- Campo oculto para enviar el HTML -->
+                <input type="hidden" name="respuesta" id="respuestaHidden">
+                
+                <!-- Input oculto para insertar imágenes en línea -->
+                <input type="file" 
+                       id="inlineImageInput" 
+                       accept="image/jpeg,image/png,image/gif,image/webp"
+                       style="display: none;"
+                       onchange="insertInlineImage(this)">
+                
+                <!-- Plantillas rápidas -->
+                <div class="templates-section">
+                    <div class="templates-title">✨ Plantillas rápidas:</div>
+                    <button type="button" class="template-btn" onclick="insertTemplate('pasos')">
+                        📝 Pasos a seguir
+                    </button>
+                    <button type="button" class="template-btn" onclick="insertTemplate('opciones')">
+                        📌 Lista de opciones
+                    </button>
+                    <button type="button" class="template-btn" onclick="insertTemplate('importante')">
+                        ⚠️ Nota importante
+                    </button>
+                    <button type="button" class="template-btn" onclick="insertTemplate('teclas')">
+                        ⌨️ Atajo de teclado
+                    </button>
+                </div>
+                
+                <div class="editor-tips">
+                    💡 <strong>Tip:</strong> Selecciona texto y haz clic en los botones para aplicar formato. Usa 🖼️ para insertar imágenes y 🎬 para videos donde esté el cursor.
+                </div>
+            </div>
+            
+            <!-- Nota sobre imágenes y videos -->
+            <div class="imagen-section">
+                <div class="imagen-section-title">🖼️ Imágenes y Videos en la respuesta</div>
+                <p class="text-muted small mb-0">
+                    Para insertar una <strong>imagen</strong>, coloca el cursor donde deseas que aparezca y haz clic en el botón 🖼️.<br>
+                    Para insertar un <strong>video</strong>, haz clic en el botón 🎬 y pega una URL de YouTube/Vimeo o sube un archivo de video.
+                </p>
+            </div>
+            
+            <div class="row mb-3 mt-3">
+                <div class="col-md-6">
+                    <label for="orden" class="form-label fw-bold">Orden</label>
+                    <input type="number" class="form-control" id="orden" name="orden" value="{{ siguiente_orden }}" min="0">
+                    <small class="text-muted">Número menor = aparece primero</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Estado</label>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="activa" name="activa" checked>
+                        <label class="form-check-label" for="activa">Pregunta activa</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    💾 Crear Pregunta
+                </button>
+                <a href="{% url 'admin_faqs' %}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para insertar video -->
+<div class="video-modal-overlay" id="videoModalOverlay">
+    <div class="video-modal">
+        <div class="video-modal-header">
+            <h3>🎬 Insertar Video</h3>
+            <button type="button" class="video-modal-close" onclick="closeVideoModal()">×</button>
+        </div>
+        <div class="video-modal-body">
+            <div class="video-tabs">
+                <button type="button" class="video-tab active" onclick="switchVideoTab('url')">🔗 URL de Video</button>
+                <button type="button" class="video-tab" onclick="switchVideoTab('file')">📁 Subir Archivo</button>
+            </div>
+            
+            <!-- Tab: URL -->
+            <div class="video-tab-content active" id="videoTabUrl">
+                <div class="video-input-group">
+                    <label for="videoUrl">URL del video</label>
+                    <input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=... o /shorts/...">
+                    <small>Soporta YouTube (videos y Shorts), Vimeo, y enlaces directos (.mp4, .webm)</small>
+                </div>
+            </div>
+            
+            <!-- Tab: Archivo -->
+            <div class="video-tab-content" id="videoTabFile">
+                <div class="video-file-upload" onclick="document.getElementById('videoFileInput').click()">
+                    <div class="video-file-icon">📹</div>
+                    <div class="video-file-text">Haz clic para seleccionar un video</div>
+                    <small style="color: #999;">MP4, WebM, OGG - Máximo 50MB</small>
+                </div>
+                <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/ogg" style="display: none;" onchange="handleVideoFile(this)">
+                <div class="video-file-selected" id="videoFileSelected"></div>
+            </div>
+        </div>
+        <div class="video-modal-footer">
+            <button type="button" class="btn-video-cancel" onclick="closeVideoModal()">Cancelar</button>
+            <button type="button" class="btn-video-insert" onclick="insertVideo()">Insertar Video</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const editor = document.getElementById('editorContent');
+const hiddenInput = document.getElementById('respuestaHidden');
+
+// Función para aplicar formato
+function formatDoc(command, value = null) {
+    document.execCommand(command, false, value);
+    editor.focus();
+}
+
+// Insertar tecla de teclado
+function insertKbd() {
+    const selection = window.getSelection();
+    if (selection.toString()) {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = selection.toString();
+        kbd.style.cssText = 'background: #eee; padding: 2px 6px; border-radius: 4px; font-family: monospace; border: 1px solid #ccc;';
+        
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(kbd);
+    } else {
+        document.execCommand('insertHTML', false, '<kbd style="background: #eee; padding: 2px 6px; border-radius: 4px; font-family: monospace; border: 1px solid #ccc;">tecla</kbd>');
+    }
+    editor.focus();
+}
+
+// Plantillas predefinidas
+function insertTemplate(tipo) {
+    let html = '';
+    
+    switch(tipo) {
+        case 'pasos':
+            html = `<p>Para realizar esta acción, sigue estos pasos:</p>
+<ol>
+    <li>Primer paso: describe aquí</li>
+    <li>Segundo paso: describe aquí</li>
+    <li>Tercer paso: describe aquí</li>
+</ol>`;
+            break;
+            
+        case 'opciones':
+            html = `<p>Tienes las siguientes opciones disponibles:</p>
+<ul>
+    <li><strong>Opción 1:</strong> descripción de la opción</li>
+    <li><strong>Opción 2:</strong> descripción de la opción</li>
+    <li><strong>Opción 3:</strong> descripción de la opción</li>
+</ul>`;
+            break;
+            
+        case 'importante':
+            html = `<p><strong>⚠️ Importante:</strong> Escribe aquí la nota importante que los usuarios deben conocer.</p>`;
+            break;
+            
+        case 'teclas':
+            html = `<p>Usa el atajo de teclado <kbd style="background: #eee; padding: 2px 6px; border-radius: 4px; font-family: monospace; border: 1px solid #ccc;">Ctrl</kbd> + <kbd style="background: #eee; padding: 2px 6px; border-radius: 4px; font-family: monospace; border: 1px solid #ccc;">tecla</kbd> para realizar esta acción.</p>`;
+            break;
+    }
+    
+    document.execCommand('insertHTML', false, html);
+    editor.focus();
+}
+
+// Actualizar campo oculto
+function updateHiddenField() {
+    hiddenInput.value = editor.innerHTML;
+}
+
+// Event listeners
+editor.addEventListener('input', updateHiddenField);
+
+// Atajos de teclado
+editor.addEventListener('keydown', function(e) {
+    if (e.ctrlKey) {
+        switch(e.key.toLowerCase()) {
+            case 'b':
+                e.preventDefault();
+                formatDoc('bold');
+                break;
+            case 'i':
+                e.preventDefault();
+                formatDoc('italic');
+                break;
+            case 'u':
+                e.preventDefault();
+                formatDoc('underline');
+                break;
+        }
+    }
+});
+
+// Validación del formulario
+document.getElementById('faqForm').addEventListener('submit', function(e) {
+    updateHiddenField();
+    
+    if (editor.textContent.trim() === '') {
+        e.preventDefault();
+        alert('Por favor, escribe una respuesta para la pregunta.');
+        editor.focus();
+        return false;
+    }
+});
+
+// ===============================================
+// FUNCIONALIDAD DE IMAGEN EN LÍNEA
+// ===============================================
+
+// Guardar posición del cursor antes de abrir el selector de archivos
+let savedSelection = null;
+
+editor.addEventListener('blur', function() {
+    savedSelection = saveSelection();
+});
+
+function saveSelection() {
+    if (window.getSelection) {
+        const sel = window.getSelection();
+        if (sel.getRangeAt && sel.rangeCount) {
+            return sel.getRangeAt(0).cloneRange();
+        }
+    }
+    return null;
+}
+
+function restoreSelection(range) {
+    if (range) {
+        if (window.getSelection) {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    }
+}
+
+function insertInlineImage(input) {
+    const file = input.files[0];
+    if (file) {
+        // Validar tamaño
+        if (file.size > 5 * 1024 * 1024) {
+            alert('La imagen es demasiado grande. Máximo 5MB.');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Restaurar la selección guardada
+            editor.focus();
+            if (savedSelection) {
+                restoreSelection(savedSelection);
+            }
+            
+            // Insertar la imagen como base64
+            const imgHtml = `<img src="${e.target.result}" alt="Imagen ilustrativa" style="max-width: 100%; height: auto; border-radius: 8px; margin: 0.5rem 0; display: block;"><br>`;
+            document.execCommand('insertHTML', false, imgHtml);
+            
+            updateHiddenField();
+        };
+        reader.readAsDataURL(file);
+        
+        // Limpiar el input para permitir subir la misma imagen de nuevo
+        input.value = '';
+    }
+}
+
+// ===============================================
+// FUNCIONALIDAD DE VIDEO
+// ===============================================
+
+let selectedVideoFile = null;
+let currentVideoTab = 'url';
+
+function openVideoModal() {
+    // Guardar posición del cursor
+    savedSelection = saveSelection();
+    document.getElementById('videoModalOverlay').classList.add('active');
+    document.getElementById('videoUrl').focus();
+}
+
+function closeVideoModal() {
+    document.getElementById('videoModalOverlay').classList.remove('active');
+    // Limpiar campos
+    document.getElementById('videoUrl').value = '';
+    document.getElementById('videoFileInput').value = '';
+    document.getElementById('videoFileSelected').classList.remove('active');
+    document.getElementById('videoFileSelected').textContent = '';
+    selectedVideoFile = null;
+    // Resetear a tab URL
+    switchVideoTab('url');
+}
+
+function switchVideoTab(tab) {
+    currentVideoTab = tab;
+    
+    // Actualizar tabs
+    document.querySelectorAll('.video-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.video-tab-content').forEach(c => c.classList.remove('active'));
+    
+    if (tab === 'url') {
+        document.querySelector('.video-tab:first-child').classList.add('active');
+        document.getElementById('videoTabUrl').classList.add('active');
+    } else {
+        document.querySelector('.video-tab:last-child').classList.add('active');
+        document.getElementById('videoTabFile').classList.add('active');
+    }
+}
+
+function handleVideoFile(input) {
+    const file = input.files[0];
+    if (file) {
+        // Validar tamaño (50MB máximo)
+        if (file.size > 50 * 1024 * 1024) {
+            alert('El video es demasiado grande. Máximo 50MB.');
+            input.value = '';
+            return;
+        }
+        
+        selectedVideoFile = file;
+        const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+        document.getElementById('videoFileSelected').textContent = `📹 ${file.name} (${sizeInMB} MB)`;
+        document.getElementById('videoFileSelected').classList.add('active');
+    }
+}
+
+function getYouTubeId(url) {
+    // Soporta: youtube.com/watch?v=, youtu.be/, youtube.com/embed/, youtube.com/shorts/
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+
+function getVimeoId(url) {
+    const regex = /vimeo\.com\/(?:video\/)?(\d+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+
+function insertVideo() {
+    let videoHtml = '';
+    
+    if (currentVideoTab === 'url') {
+        const url = document.getElementById('videoUrl').value.trim();
+        if (!url) {
+            alert('Por favor, ingresa una URL de video.');
+            return;
+        }
+        
+        // Detectar tipo de URL
+        const youtubeId = getYouTubeId(url);
+        const vimeoId = getVimeoId(url);
+        
+        if (youtubeId) {
+            // Embed de YouTube (usando youtube-nocookie para mejor privacidad y compatibilidad)
+            videoHtml = `
+                <div class="faq-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin: 1rem 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe 
+                        src="https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 12px;"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen>
+                    </iframe>
+                </div><br>`;
+        } else if (vimeoId) {
+            // Embed de Vimeo
+            videoHtml = `
+                <div class="faq-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin: 1rem 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <iframe 
+                        src="https://player.vimeo.com/video/${vimeoId}" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 12px;"
+                        allow="autoplay; fullscreen; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div><br>`;
+        } else if (url.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) {
+            // Video directo
+            videoHtml = `
+                <video controls style="max-width: 100%; border-radius: 12px; margin: 1rem 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <source src="${url}" type="video/${url.split('.').pop().split('?')[0]}">
+                    Tu navegador no soporta el elemento de video.
+                </video><br>`;
+        } else {
+            alert('URL no reconocida. Usa YouTube, Vimeo, o un enlace directo a video (.mp4, .webm, .ogg).');
+            return;
+        }
+    } else {
+        // Tab de archivo
+        if (!selectedVideoFile) {
+            alert('Por favor, selecciona un archivo de video.');
+            return;
+        }
+        
+        // Convertir archivo a base64
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const videoType = selectedVideoFile.type;
+            videoHtml = `
+                <video controls style="max-width: 100%; border-radius: 12px; margin: 1rem 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <source src="${e.target.result}" type="${videoType}">
+                    Tu navegador no soporta el elemento de video.
+                </video><br>`;
+            
+            // Insertar en el editor
+            editor.focus();
+            if (savedSelection) {
+                restoreSelection(savedSelection);
+            }
+            document.execCommand('insertHTML', false, videoHtml);
+            updateHiddenField();
+            closeVideoModal();
+        };
+        reader.readAsDataURL(selectedVideoFile);
+        return; // El cierre del modal se hace en el callback
+    }
+    
+    // Insertar en el editor (solo para URLs)
+    editor.focus();
+    if (savedSelection) {
+        restoreSelection(savedSelection);
+    }
+    document.execCommand('insertHTML', false, videoHtml);
+    updateHiddenField();
+    closeVideoModal();
+}
+
+// Cerrar modal con Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('videoModalOverlay').classList.contains('active')) {
+        closeVideoModal();
+    }
+});
+</script>
+{% endblock %}

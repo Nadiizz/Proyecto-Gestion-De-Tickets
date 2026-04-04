@@ -1,46 +1,181 @@
 {# Página principal que muestra la lista de tickets del sistema #}
 {# Muestra diferentes opciones según el rol del usuario (Administrador, Técnico, Usuario) #}
+{# Incluye búsqueda avanzada, filtros múltiples y paginación #}
 {# Los administradores pueden asignar tickets, los técnicos cambiar estados #}
-{# Cada usuario ve solo los tickets relevantes para su rol y permisos #}
 
 {% extends 'tickets/base_intranet.html' %}
+{% load crispy_forms_tags %}
 {% block content %}
 
-<!-- Estadísticas del Dashboard -->
-<div class="stats-grid">
-    <div class="stat-card registrados">
-        <div class="stat-number">{{ total_tickets }}</div>
-        <div class="stat-label">Registrados</div>
+<!-- Estadísticas del Dashboard con barras de progreso -->
+<div class="stats-grid-enhanced">
+    <div class="stat-card-enhanced total">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_tickets }}</div>
+            <div class="stat-label">Total Registrados</div>
+        </div>
     </div>
-    <div class="stat-card asignados">
-        <div class="stat-number">{{ asignados_count }}</div>
-        <div class="stat-label">Asignados</div>
+    
+    <div class="stat-card-enhanced pendientes">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ pendientes_count }}</span>
+                <span class="stat-percentage" data-count="{{ pendientes_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress pendientes-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card proceso">
-        <div class="stat-number">{{ en_proceso_count }}</div>
-        <div class="stat-label">En Proceso</div>
+    
+    <div class="stat-card-enhanced proceso">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ en_proceso_count }}</span>
+                <span class="stat-percentage" data-count="{{ en_proceso_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">En Proceso</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress proceso-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
-    <div class="stat-card finalizados">
-        <div class="stat-number">{{ resueltos_count }}</div>
-        <div class="stat-label">Resueltos</div>
+    
+    <div class="stat-card-enhanced resueltos">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ resueltos_count }}</span>
+                <span class="stat-percentage" data-count="{{ resueltos_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">Resueltos</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress resueltos-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card-enhanced cerrados">
+        <div class="stat-icon">📁</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ cerrados_count }}</span>
+                <span class="stat-percentage" data-count="{{ cerrados_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">Cerrados</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress cerrados-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card-enhanced sla-excedido">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-content">
+            <div class="stat-header">
+                <span class="stat-number">{{ sla_excedido_count }}</span>
+                <span class="stat-percentage" data-count="{{ sla_excedido_count }}" data-total="{{ total_tickets }}"></span>
+            </div>
+            <div class="stat-label">SLA Excedido</div>
+            <div class="stat-progress-bar">
+                <div class="stat-progress sla-progress" style="--progress-width: 0%"></div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- SOLO UNA SECCIÓN DE TICKETS -->
+<!-- Sección de Tickets Urgentes (solo para admins y técnicos) -->
+{% if tickets_urgentes and permisos.es_admin or tickets_urgentes and permisos.es_tecnico %}
+<div class="urgent-tickets-section">
+    <div class="urgent-header">
+        <h3>🚨 Tickets Urgentes</h3>
+        <span class="urgent-badge">{{ tickets_urgentes|length }} pendiente{{ tickets_urgentes|length|pluralize:"s" }}</span>
+    </div>
+    <div class="urgent-tickets-grid">
+        {% for ticket in tickets_urgentes %}
+        <div class="urgent-ticket-card priority-{{ ticket.prioridad|lower }}">
+            <div class="urgent-ticket-header">
+                <span class="ticket-id">#{{ ticket.id }}</span>
+                <span class="priority-badge priority-{{ ticket.prioridad|lower }}">
+                    {% if ticket.prioridad == 'critica' %}🔴{% else %}🟠{% endif %} {{ ticket.prioridad|title }}
+                </span>
+            </div>
+            <div class="urgent-ticket-title">{{ ticket.titulo|truncatechars:50 }}</div>
+            <div class="urgent-ticket-meta">
+                <span>📁 {{ ticket.categoria.nombre }}</span>
+                <span>📅 {{ ticket.fecha_creacion|timesince }}</span>
+            </div>
+            <div class="urgent-ticket-footer">
+                {% if ticket.asignado_a %}
+                    <span class="assigned">👤 {{ ticket.asignado_a.first_name|default:ticket.asignado_a.username }}</span>
+                {% else %}
+                    <span class="not-assigned">⚠️ Sin asignar</span>
+                {% endif %}
+                <a href="{% url 'ticket_detalle' ticket.id %}" class="btn-urgent-view">Ver →</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Formulario de búsqueda avanzada -->
+<div class="search-section">
+    <h3>🔍 Búsqueda Avanzada</h3>
+    <form method="get" action="{% url 'ticket_list' %}">
+        <div class="row">
+            <div class="col-md-6">
+                <label>Búsqueda por texto</label>
+                {{ form.busqueda }}
+            </div>
+            <div class="col-md-3">
+                <label>Estado</label>
+                {{ form.estado }}
+            </div>
+            <div class="col-md-3">
+                <label>Prioridad</label>
+                {{ form.prioridad }}
+            </div>
+        </div>
+        <div class="row row-second">
+            <div class="col-md-3">
+                <label>Categoría</label>
+                {{ form.categoria }}
+            </div>
+            <div class="col-md-3">
+                <label>Técnico asignado</label>
+                {{ form.asignado_a }}
+            </div>
+            <div class="col-md-3">
+                <label>Desde (últimos días)</label>
+                <select name="dias_atras" class="form-select">
+                    <option value="">Cualquier fecha</option>
+                    <option value="1">Últimas 24 horas</option>
+                    <option value="7">Últimos 7 días</option>
+                    <option value="30">Últimos 30 días</option>
+                    <option value="90">Últimos 90 días</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label>&nbsp;</label>
+                <div class="search-buttons-container">
+                    <button type="submit" class="btn btn-search-primary">🔍 Buscar</button>
+                    <a href="{% url 'ticket_list' %}" class="btn btn-reset-secondary" title="Reiniciar filtros">🔄</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- SECCIÓN DE TICKETS -->
 <div class="tickets-section">
     <div class="section-header">
-        <h3>
-            {% if filtro_aplicado %}
-                🎫 Tickets {{ estado_filtro|title }}
-            {% else %}
-                📋 Tickets Recientes
-            {% endif %}
-        </h3>
-        
-        <!-- Botón de crear ticket SOLO si no hay filtro aplicado -->
-        {% if not filtro_aplicado %}
+        <h3>📋 Lista de Tickets</h3>
         <a href="{% url 'ticket_create' %}" class="btn btn-primary">➕ Crear Nuevo Ticket</a>
-        {% endif %}
     </div>
     
     <table class="tickets-table">
@@ -61,8 +196,17 @@
             <tr>
                 <td>#{{ ticket.id }}</td>
                 <td><strong>{{ ticket.titulo }}</strong></td>
-                <td>{{ ticket.creador.username }}</td>
-                <td>{{ ticket.area_afectada }}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        {% if ticket.creador.perfilusuario.foto_perfil %}
+                            <img src="{{ ticket.creador.perfilusuario.foto_perfil.url }}" alt="{{ ticket.creador.username }}" style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid #667eea; object-fit: cover;">
+                        {% else %}
+                            <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.8rem; border: 2px solid #667eea;">{{ ticket.creador.first_name|first|upper|default:ticket.creador.username|first|upper }}</div>
+                        {% endif %}
+                        <span>{{ ticket.creador.first_name|default:ticket.creador.username }} {{ ticket.creador.last_name }}</span>
+                    </div>
+                </td>
+                <td>{{ ticket.categoria.nombre }}</td>
                 <td>
                     <span class="priority-badge priority-{{ ticket.prioridad|lower }}">
                         {{ ticket.prioridad }}
@@ -73,39 +217,123 @@
                         {{ ticket.estado }}
                     </span>
                 </td>
-                <td>{{ ticket.fecha_creacion|date:"d/m/Y" }}</td>
+                <td>
+                    <div class="date-time-container">
+                        <div class="date-text">{{ ticket.fecha_creacion|date:"d/m/Y" }}</div>
+                        <div class="time-text">{{ ticket.fecha_creacion|date:"h:i A" }}</div>
+                    </div>
+                </td>
                 <td>
                     <div class="action-buttons">
                         <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-view">👁️ Ver</a>
-                        {% if user.groups.all.0.name == 'Técnico' and ticket.asignado_a == user %}
+                        {% if permisos.puede_cambiar_estado and ticket.asignado_a == user %}
+                        <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-edit">🔄 Cambiar</a>
+                        {% elif permisos.es_tecnico and ticket.asignado_a == user %}
                         <a href="{% url 'cambiar_estado' ticket.id %}" class="btn btn-edit">🔄 Cambiar</a>
                         {% endif %}
-                        {% if user.groups.all.0.name == 'Administrador' and not ticket.asignado_a %}
+                        {% if permisos.puede_asignar and not ticket.asignado_a %}
                         <a href="{% url 'asignar_ticket' ticket.id %}" class="btn btn-assign">👤 Asignar</a>
+                        {% elif permisos.puede_autoasignarse and not ticket.asignado_a and ticket.creador != user %}
+                        <a href="{% url 'autoasignar_ticket' ticket.id %}" class="btn btn-autoassign" title="Autoasignarme este ticket">✋ Tomar</a>
                         {% endif %}
                     </div>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
-                    {% if filtro_aplicado %}
-                    📭 No hay tickets {{ estado_filtro }} para mostrar
-                    {% else %}
+                <td colspan="8" class="empty-message">
                     📝 No hay tickets para mostrar
-                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     
-    <!-- Mensaje cuando hay filtro aplicado -->
-    {% if filtro_aplicado %}
-    <div style="text-align: center; margin-top: 1rem;">
-        <a href="{% url 'ticket_list' %}" class="btn btn-secondary">📊 Ver Todos los Tickets</a>
+    <!-- Paginación -->
+    {% if tickets.has_other_pages %}
+    <div class="pagination">
+        {% if tickets.has_previous %}
+            <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">« Primera</a>
+            <a href="?page={{ tickets.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">‹ Anterior</a>
+        {% endif %}
+
+        <span>Página {{ tickets.number }} de {{ tickets.paginator.num_pages }}</span>
+
+        {% if tickets.has_next %}
+            <a href="?page={{ tickets.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente ›</a>
+            <a href="?page={{ tickets.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Última »</a>
+        {% endif %}
     </div>
     {% endif %}
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Calcular y animar barras de progreso
+document.addEventListener('DOMContentLoaded', function() {
+    const total = {{ total_tickets }};
+    const stats = {
+        pendientes: {{ pendientes_count }},
+        proceso: {{ en_proceso_count }},
+        resueltos: {{ resueltos_count }},
+        cerrados: {{ cerrados_count }},
+        sla: {{ sla_excedido_count }}
+    };
+    
+    // Calcular porcentajes y animar barras
+    setTimeout(() => {
+        // Pendientes
+        const pendientesPercent = total > 0 ? (stats.pendientes / total * 100).toFixed(1) : 0;
+        document.querySelector('.pendientes-progress').style.setProperty('--progress-width', pendientesPercent + '%');
+        
+        // En Proceso
+        const procesoPercent = total > 0 ? (stats.proceso / total * 100).toFixed(1) : 0;
+        document.querySelector('.proceso-progress').style.setProperty('--progress-width', procesoPercent + '%');
+        
+        // Resueltos
+        const resueltosPercent = total > 0 ? (stats.resueltos / total * 100).toFixed(1) : 0;
+        document.querySelector('.resueltos-progress').style.setProperty('--progress-width', resueltosPercent + '%');
+        
+        // Cerrados
+        const cerradosPercent = total > 0 ? (stats.cerrados / total * 100).toFixed(1) : 0;
+        document.querySelector('.cerrados-progress').style.setProperty('--progress-width', cerradosPercent + '%');
+        
+        // SLA Excedido
+        const slaPercent = total > 0 ? (stats.sla / total * 100).toFixed(1) : 0;
+        document.querySelector('.sla-progress').style.setProperty('--progress-width', slaPercent + '%');
+        
+        // Actualizar textos de porcentaje
+        document.querySelectorAll('.stat-percentage').forEach(el => {
+            const count = parseInt(el.dataset.count);
+            const totalVal = parseInt(el.dataset.total);
+            const percent = totalVal > 0 ? (count / totalVal * 100).toFixed(1) : 0;
+            el.textContent = percent + '%';
+        });
+    }, 300);
+});
+
+// Detectar si es primera visita al dashboard o navegación interna
+(function() {
+    const mainContent = document.querySelector('.main-content');
+    
+    // Verificar si ya estábamos en el dashboard
+    const wasInDashboard = sessionStorage.getItem('inDashboard');
+    
+    // Marcar que ahora estamos en el dashboard
+    sessionStorage.setItem('inDashboard', 'true');
+    
+    if (!wasInDashboard) {
+        // Primera vez en el dashboard - animar toda la página
+        mainContent.classList.add('page-load');
+    } else {
+        // Ya estábamos en el dashboard - solo animar tickets
+        const ticketRows = document.querySelectorAll('.tickets-table tbody tr');
+        ticketRows.forEach((row, index) => {
+            row.style.animation = `fadeInUp 0.3s ease-out ${index * 0.05}s both`;
+        });
+    }
+})();
+</script>
 {% endblock %}

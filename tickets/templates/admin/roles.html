@@ -1,0 +1,102 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Gestión de Roles - Coyahue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_common.css' %}">
+<link rel="stylesheet" href="{% static 'tickets/css/admin_roles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🎭 Gestión de Roles Personalizados</h1>
+    <a href="{% url 'admin_crear_rol' %}" class="btn-primary-custom">
+        ➕ Crear Nuevo Rol
+    </a>
+</div>
+
+{% if roles %}
+<div class="roles-grid">
+    {% for rol in roles %}
+    <div class="role-card">
+        <div class="role-header">
+            <div class="role-icon" style="background-color: #667eea;" data-color="{{ rol.color|default:'#667eea' }}">
+                {{ rol.nombre|first|upper }}
+            </div>
+            <div class="role-info">
+                <h3>{{ rol.nombre }}</h3>
+                {% if rol.descripcion %}
+                <p class="role-description">{{ rol.descripcion }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="role-stats">
+            <div class="stat-item">
+                <span class="stat-label">👥 Usuarios</span>
+                <span class="stat-value">{{ rol.usuarios_count|default:0 }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">🔑 Permisos</span>
+                <span class="stat-value">{{ rol.permisos_count|default:0 }}</span>
+            </div>
+        </div>
+        
+        <div class="permisos-section">
+            <h4>Permisos Asignados:</h4>
+            {% if rol.permisos.all %}
+            <div class="permisos-list">
+                {% for permiso in rol.permisos.all %}
+                <div class="permiso-item active">
+                    <span class="permiso-icon">✓</span>
+                    <span class="permiso-name">{{ permiso.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="no-permisos">Sin permisos asignados</p>
+            {% endif %}
+        </div>
+        
+        <div class="role-actions">
+            <a href="{% url 'admin_editar_rol' rol.id %}" class="btn-sm btn-edit">✏️ Editar</a>
+            
+            <form method="post" action="{% url 'admin_toggle_rol' rol.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-sm btn-toggle">
+                    {% if rol.activo %}⏸️ Desactivar{% else %}▶️ Activar{% endif %}
+                </button>
+            </form>
+            
+            <form method="post" action="{% url 'admin_eliminar_rol' rol.id %}" 
+                  onsubmit="return confirm('¿Estás seguro de eliminar el rol {{ rol.nombre }}?');" 
+                  style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-sm btn-delete">🗑️ Eliminar</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">🎭</div>
+    <h3>No hay roles personalizados</h3>
+    <p>Crea tu primer rol para empezar a gestionar permisos</p>
+    <a href="{% url 'admin_crear_rol' %}" class="btn-primary-custom">➕ Crear Primer Rol</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Aplicar colores dinámicos a los iconos de roles
+    document.querySelectorAll('.role-icon[data-color]').forEach(icon => {
+        const color = icon.getAttribute('data-color');
+        if (color) {
+            icon.style.backgroundColor = color;
+        }
+    });
+</script>
+{% endblock %}

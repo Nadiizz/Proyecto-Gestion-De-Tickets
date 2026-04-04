@@ -1,0 +1,127 @@
+﻿{% extends "tickets/base_intranet.html" %}
+{% load static %}
+
+{% block title %}Editar Rol - Coyahue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_common.css' %}">
+<link rel="stylesheet" href="{% static 'tickets/css/admin_forms.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1> Editar Rol</h1>
+        <p>Modifique la configuración del rol personalizado</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3>📋 Información Básica</h3>
+            
+            <div class="form-group">
+                <label for="nombre" class="required">Nombre del Rol</label>
+                <input type="text" id="nombre" name="nombre" class="form-control" value="{{ rol.nombre }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="descripcion">Descripción</label>
+                <textarea id="descripcion" name="descripcion" class="form-control" rows="3">{{ rol.descripcion }}</textarea>
+                <small class="help-text">Describe las responsabilidades de este rol</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="color">Color Identificador</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="color" name="color" class="color-input" value="{{ rol.color }}">
+                </div>
+                <small class="help-text">Este color se usará para identificar visualmente el rol</small>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>🔑 Permisos del Sistema</h3>
+            <p class="help-text">Seleccione los permisos que tendrá este rol</p>
+            
+            <div class="permisos-grid">
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_ver_metricas" {% if rol.puede_ver_metricas %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">📈 Ver Métricas</span>
+                            <span class="permiso-desc">Acceso a estadísticas y reportes del sistema</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_ver_todos_tickets" {% if rol.puede_ver_todos_tickets %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">📋 Ver Todos los Tickets</span>
+                            <span class="permiso-desc">Ver tickets de todos los usuarios, no solo los propios</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_asignar_tickets" {% if rol.puede_asignar_tickets %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">👥 Asignar Tickets</span>
+                            <span class="permiso-desc">Asignar tickets a técnicos</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_cambiar_estado" {% if rol.puede_cambiar_estado %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">🔄 Cambiar Estado</span>
+                            <span class="permiso-desc">Cambiar el estado de cualquier ticket</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_gestionar_usuarios" {% if rol.puede_gestionar_usuarios %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">⚙️ Gestionar Usuarios</span>
+                            <span class="permiso-desc">Crear, editar y eliminar usuarios del sistema</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_crear_roles" {% if rol.puede_crear_roles %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">🎭 Crear Roles</span>
+                            <span class="permiso-desc">Crear y modificar roles personalizados</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="permiso-card">
+                    <label>
+                        <input type="checkbox" name="puede_validar_prioridad" {% if rol.puede_validar_prioridad %}checked{% endif %}>
+                        <div class="permiso-info">
+                            <span class="permiso-title">⚖️ Validar Prioridad</span>
+                            <span class="permiso-desc">Validar prioridades auto-detectadas en tickets críticos</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">✓ Guardar Cambios</button>
+            <a href="{% url 'admin_roles' %}" class="btn-secondary">❌ Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

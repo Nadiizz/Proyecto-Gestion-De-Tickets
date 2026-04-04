@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitación Expirada - Coyahue</title>
+    <link rel="stylesheet" href="{% static 'tickets/css/admin_common.css' %}">
+    <link rel="stylesheet" href="{% static 'tickets/css/admin_invitaciones.css' %}">
+</head>
+<body class="invitacion-expirada">
+    <div class="container">
+        <div class="icon">⏰</div>
+        
+        <h1>Invitación Expirada</h1>
+        
+        <p class="message">
+            Esta invitación ya no es válida. {% if invitacion.estado == 'cancelada' %}Ha sido cancelada.{% else %}Ha expirado.{% endif %}
+        </p>
+        
+        <div class="info-box">
+            <div class="info-item">
+                <span class="info-label">Para:</span>
+                <span class="info-value">{{ invitacion.email }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Estado:</span>
+                <span class="info-value">{{ invitacion.get_estado_display }}</span>
+            </div>
+            {% if invitacion.fecha_expiracion %}
+            <div class="info-item">
+                <span class="info-label">Expiró:</span>
+                <span class="info-value">{{ invitacion.fecha_expiracion|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <p style="color: #7f8c8d; margin-bottom: 1.5rem;">
+            Contacta al administrador del sistema para solicitar una nueva invitación.
+        </p>
+        
+        <a href="/login/" class="btn btn-primary">Ir al Inicio de Sesión</a>
+        
+        <p class="footer-text">
+            Sistema de Gestión de Tickets Coyahue
+        </p>
+    </div>
+</body>
+</html>

@@ -15,38 +15,62 @@
 <div class="form-section">
     <div class="form-header">
         <h2>🔄 Cambiar Estado del Ticket</h2>
-        <p>Actualiza el estado de progreso de este ticket</p>
+        <p>{{ contexto_cambio.mensaje }}</p>
+    </div>
+
+    {# Información contextual del rol del usuario #}
+    <div class="role-context-info">
+        {% if contexto_cambio.es_admin %}
+            <div class="alert alert-info">
+                <strong>👑 Administrador:</strong> Tienes acceso completo para cambiar el estado del ticket.
+            </div>
+        {% elif contexto_cambio.es_tecnico_asignado %}
+            <div class="alert alert-success">
+                <strong>🔧 Técnico Asignado:</strong> Puedes actualizar el progreso de este ticket que tienes asignado.
+            </div>
+        {% elif contexto_cambio.es_creador %}
+            <div class="alert alert-warning">
+                <strong>📝 Creador del Ticket:</strong> Puedes cerrar el ticket si ya fue resuelto satisfactoriamente.
+            </div>
+        {% endif %}
     </div>
 
     <div class="ticket-info-card">
         <div class="ticket-header">
             <h3>#{{ ticket.id }} - {{ ticket.titulo }}</h3>
             <div class="ticket-meta">
-                <span class="status-badge status-{{ ticket.estado|lower }}">{{ ticket.estado }}</span>
-                <span class="priority-badge priority-{{ ticket.prioridad|lower }}">{{ ticket.prioridad }}</span>
+                <span class="status-badge status-{{ ticket.estado|lower }}">
+                    {% if ticket.estado == 'pendiente' %}🟡{% endif %}
+                    {% if ticket.estado == 'en_progreso' %}🔵{% endif %}
+                    {% if ticket.estado == 'resuelto' %}🟢{% endif %}
+                    {% if ticket.estado == 'cerrado' %}⚫{% endif %}
+                    {% if ticket.estado == 'tiempo_excedido' %}🔴{% endif %}
+                    {{ ticket.get_estado_display }}
+                </span>
+                <span class="priority-badge priority-{{ ticket.prioridad|lower }}">{{ ticket.get_prioridad_display }}</span>
             </div>
         </div>
         
         <div class="ticket-details">
             <div class="detail-row">
                 <span class="detail-label">📝 Descripción:</span>
-                <span class="detail-value">{{ ticket.descripcion }}</span>
+                <span class="detail-value">{{ ticket.descripcion|truncatewords:30 }}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">🏢 Área afectada:</span>
-                <span class="detail-value">{{ ticket.area_afectada }}</span>
+                <span class="detail-label">🏢 Categoría:</span>
+                <span class="detail-value">{{ ticket.categoria.nombre }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">👤 Creado por:</span>
-                <span class="detail-value">{{ ticket.creador.username }}</span>
+                <span class="detail-value">{{ ticket.creador.get_full_name|default:ticket.creador.username }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">👨‍💻 Asignado a:</span>
                 <span class="detail-value">
                     {% if ticket.asignado_a %}
-                        {{ ticket.asignado_a.username }}
+                        {{ ticket.asignado_a.get_full_name|default:ticket.asignado_a.username }}
                     {% else %}
-                        <span style="color: #e74c3c;">Sin asignar</span>
+                        <span class="text-danger">Sin asignar</span>
                     {% endif %}
                 </span>
             </div>
@@ -57,24 +81,65 @@
         </div>
     </div>
 
+    {# Mostrar flujo de estados para referencia #}
+    <div class="status-flow-guide">
+        <h4>📋 Flujo de Estados</h4>
+        <div class="flow-steps">
+            <span class="flow-step {% if ticket.estado == 'pendiente' %}current{% endif %}">🟡 Pendiente</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step {% if ticket.estado == 'en_progreso' %}current{% endif %}">🔵 En Progreso</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step {% if ticket.estado == 'resuelto' %}current{% endif %}">🟢 Resuelto</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step {% if ticket.estado == 'cerrado' %}current{% endif %}">⚫ Cerrado</span>
+        </div>
+    </div>
+
+    {% if estados_disponibles %}
     <form method="post" class="status-form">
         {% csrf_token %}
         
         <div class="form-group">
-            <label for="estado" class="form-label">🎯 Seleccionar Nuevo Estado:</label>
+            <label for="estado" class="form-label">🎯 {% if contexto_cambio.es_creador and ticket.estado == 'resuelto' %}¿Se solucionó tu problema?{% else %}Seleccionar Nuevo Estado:{% endif %}</label>
             <div class="status-options">
-                {% for estado_key, estado_value in estados %}
+                {% for estado_key, estado_value in estados_disponibles %}
                 <label class="status-option">
-                    <input type="radio" name="estado" value="{{ estado_key }}" 
-                        {% if ticket.estado == estado_key %}checked{% endif %}>
+                    <input type="radio" name="estado" value="{{ estado_key }}" required>
                     <span class="status-option-content">
                         <span class="status-icon">
-                            {% if estado_key == 'abierto' %}🟡{% endif %}
-                            {% if estado_key == 'en_progreso' %}🔵{% endif %}
-                            {% if estado_key == 'resuelto' %}🟢{% endif %}
+                            {# Iconos especiales para el creador cuando está confirmando solución #}
+                            {% if contexto_cambio.es_creador and ticket.estado == 'resuelto' %}
+                                {% if estado_key == 'cerrado' %}✅{% endif %}
+                                {% if estado_key == 'en_progreso' %}❌{% endif %}
+                            {% else %}
+                                {% if estado_key == 'pendiente' %}🟡{% endif %}
+                                {% if estado_key == 'en_progreso' %}🔵{% endif %}
+                                {% if estado_key == 'resuelto' %}🟢{% endif %}
+                                {% if estado_key == 'cerrado' %}⚫{% endif %}
+                                {% if estado_key == 'tiempo_excedido' %}🔴{% endif %}
+                            {% endif %}
                         </span>
-                        <span class="status-text">{{ estado_value }}</span>
-                        <span class="status-badge status-{{ estado_key }}">{{ estado_value }}</span>
+                        <span class="status-text">
+                            {# Textos especiales para el creador cuando está confirmando solución #}
+                            {% if contexto_cambio.es_creador and ticket.estado == 'resuelto' %}
+                                {% if estado_key == 'cerrado' %}Sí, problema resuelto{% endif %}
+                                {% if estado_key == 'en_progreso' %}No, aún tengo el problema{% endif %}
+                            {% else %}
+                                {{ estado_value }}
+                            {% endif %}
+                        </span>
+                        <span class="status-description">
+                            {# Descripciones especiales para el creador #}
+                            {% if contexto_cambio.es_creador and ticket.estado == 'resuelto' %}
+                                {% if estado_key == 'cerrado' %}Confirmo que la solución funcionó correctamente{% endif %}
+                                {% if estado_key == 'en_progreso' %}El técnico volverá a revisar mi caso{% endif %}
+                            {% else %}
+                                {% if estado_key == 'pendiente' %}Ticket en espera de ser atendido{% endif %}
+                                {% if estado_key == 'en_progreso' %}Técnico trabajando activamente{% endif %}
+                                {% if estado_key == 'resuelto' %}Problema solucionado, esperando confirmación{% endif %}
+                                {% if estado_key == 'cerrado' %}Caso finalizado{% endif %}
+                            {% endif %}
+                        </span>
                     </span>
                 </label>
                 {% endfor %}
@@ -82,9 +147,9 @@
         </div>
 
         <div class="form-group">
-            <label for="comentario" class="form-label">💬 Comentario (opcional):</label>
+            <label for="comentario" class="form-label">💬 {% if contexto_cambio.es_creador and ticket.estado == 'resuelto' %}Comentario (cuéntanos cómo te fue):{% else %}Comentario (opcional):{% endif %}</label>
             <textarea name="comentario" id="comentario" class="form-textarea" 
-                placeholder="Agrega un comentario sobre el cambio de estado..."></textarea>
+                placeholder="Describe qué trabajo realizaste o por qué cambias el estado..."></textarea>
         </div>
 
         <div class="form-actions">
@@ -94,11 +159,29 @@
             <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-secondary">
                 ↩️ Volver al Ticket
             </a>
-            <a href="{% url 'ticket_list' %}" class="btn btn-secondary">
-                📊 Volver al Dashboard
-            </a>
         </div>
     </form>
+    {% else %}
+    <div class="no-transitions-available">
+        <div class="alert alert-warning">
+            <strong>⚠️ Sin transiciones disponibles</strong>
+            <p>{{ contexto_cambio.mensaje }}</p>
+            <p>El ticket está en estado <strong>{{ ticket.get_estado_display }}</strong>.</p>
+        </div>
+        <div class="form-actions">
+            <a href="{% url 'ticket_detalle' ticket.id %}" class="btn btn-secondary">
+                ↩️ Volver al Ticket
+            </a>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Limpiar marca de dashboard al visitar cambiar estado
+    sessionStorage.removeItem('inDashboard');
+</script>
 {% endblock %}

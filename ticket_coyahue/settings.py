@@ -14,10 +14,6 @@ from pathlib import Path
 from decouple import config
 
 
-# Contraseña base de datos
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=True, cast=bool)
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-+v&)pgdcp*c)^-kd%rl8yfpe=)xbg@-!xj1l!yzh+n)kqr5s4i'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -48,12 +44,9 @@ INSTALLED_APPS = [
     'tickets',
 ]
 
-# Crispy Forms Settings
+# Crispy Forms Configuration
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
-
-# Crispy Forms Configuration
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -62,8 +55,20 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Deshabilitamos X-Frame-Options para permitir embeds de video
+    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# ============================================
+# CONFIGURACIÓN DE SEGURIDAD PARA EMBEDS
+# ============================================
+
+# Permitir que la página sea embebida (necesario para iframes de video)
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Content Security Policy - Permitir embeds de YouTube y Vimeo
+# Esto permite cargar iframes de estas fuentes
+CSP_FRAME_SRC = ("'self'", "https://www.youtube.com", "https://youtube.com", "https://player.vimeo.com", "https://vimeo.com")
 
 ROOT_URLCONF = 'ticket_coyahue.urls'
 
@@ -78,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'tickets.context_processors.permisos_usuario',  # Permisos de roles personalizados
             ],
         },
     },
@@ -125,7 +131,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Ajustamos la zona horaria a la local (Chile - Coyahue). Esto hace que
+# los datetimes con USE_TZ=True se muestren en esta zona por defecto.
+TIME_ZONE = 'America/Santiago'
 
 USE_I18N = True
 
@@ -140,6 +148,10 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
+# Media files (User uploaded files)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -150,3 +162,97 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'ticket_list'
 LOGOUT_REDIRECT_URL = 'login'
 
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'ticket_coyahue.log'),
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'tickets': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# ============================================
+# CONSTANTES DE APLICACIÓN
+# ============================================
+
+# Grupos de usuarios (roles)
+GRUPO_ADMINISTRADOR = 'Administrador'
+GRUPO_TECNICO = 'Técnico'
+GRUPO_USUARIO = 'Usuario'
+
+# Configuración de tickets
+TICKETS_POR_PAGINA = 10
+DIAS_METRICAS_DEFAULT = 30
+TOP_TECNICOS_LIMIT = 10
+TOP_AREAS_LIMIT = 10
+
+# Archivos
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.xlsx', '.xls', '.zip']
+
+# ============================================
+# LÍMITES DE CARGA DE DATOS (para videos en FAQ)
+# ============================================
+
+# Tamaño máximo del cuerpo de la solicitud (100 MB para videos)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB en bytes
+
+# Tamaño máximo de archivo individual
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB en bytes
+
+# Número máximo de campos GET/POST
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+# ============================================
+# CONFIGURACIÓN DE EMAIL (Notificaciones)
+# ============================================
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@coyahue.com')
+
+# ============================================
+# CONFIGURACIÓN DE TWILIO (WhatsApp)
+# ============================================
+
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
+TWILIO_WHATSAPP_NUMBER = config('TWILIO_WHATSAPP_NUMBER', default='whatsapp:+1234567890')

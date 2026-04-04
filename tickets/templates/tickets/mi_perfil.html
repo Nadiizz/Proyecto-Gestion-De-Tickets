@@ -1,0 +1,235 @@
+{# Página de perfil y configuración del usuario autenticado #}
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/perfil.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-container page-transition-enter">
+    {# Header #}
+    <div class="profile-header">
+        <h1>👤 Mi Perfil</h1>
+        <p>Gestiona tu información personal y configuración de seguridad</p>
+    </div>
+
+    {# Mostrar mensajes #}
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {# Sección de Información del Perfil #}
+    <div class="profile-section">
+        <h2>ℹ️ Información Personal</h2>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="actualizar_perfil">
+            
+            {# Foto de Perfil #}
+            <div class="profile-photo-container">
+                <h3>📷 Foto de Perfil</h3>
+                
+                {# Círculo que muestra la foto (actual o preview) #}
+                <div id="foto-container">
+                    {% if perfil.foto_perfil %}
+                        <img id="foto-display" src="{{ perfil.foto_perfil.url }}" alt="Foto de perfil" class="profile-photo">
+                    {% else %}
+                        <div id="foto-display" class="profile-photo" style="background: linear-gradient(135deg, #ecf0f1 0%, #dfe6e9 100%); display: flex; align-items: center; justify-content: center; font-size: 3.5rem;">
+                            👤
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="foto_perfil" name="foto_perfil" accept="image/*" onchange="mostrarPreviewFoto(event)">
+                    <label for="foto_perfil" class="file-input-label">📷 Cambiar Foto de Perfil</label>
+                </div>
+                <small class="help-text">Acepta: JPG, PNG, GIF (máx. 10 MB)</small>
+            </div>
+
+            {# Información Básica #}
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">Nombre</label>
+                    <input type="text" id="first_name" name="first_name" class="form-control" value="{{ usuario.first_name }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="last_name">Apellido</label>
+                    <input type="text" id="last_name" name="last_name" class="form-control" value="{{ usuario.last_name }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-control" value="{{ usuario.email }}" required>
+                <small class="help-text">Tu dirección de correo electrónico principal</small>
+            </div>
+
+            {# Información de Perfil Adicional #}
+            <h3>📋 Información Adicional</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="tel" id="telefono" name="telefono" class="form-control" value="{{ perfil.telefono }}" placeholder="+56 9 1234 5678">
+                    <small class="help-text">Número de contacto (opcional)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cargo">Cargo</label>
+                    <input type="text" id="cargo" name="cargo" class="form-control" value="{{ perfil.cargo }}" placeholder="Ej: Analista, Desarrollador...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="departamento">Departamento</label>
+                <input type="text" id="departamento" name="departamento" class="form-control" value="{{ perfil.departamento }}" placeholder="Ej: TI, Recursos Humanos...">
+            </div>
+
+            {# Información de Rol #}
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>👤 Usuario</strong>
+                    <span>{{ usuario.username }}</span>
+                </div>
+                <div class="info-item">
+                    <strong>🏷️ Grupo/Rol</strong>
+                    <span>{{ grupo_actual.name|default:"Sin asignar" }}</span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-submit">💾 Guardar Cambios</button>
+                <a href="{% url 'ticket_list' %}" class="btn btn-secondary">← Volver</a>
+            </div>
+        </form>
+    </div>
+
+    {# Sección de Seguridad - Cambiar Contraseña #}
+    <div class="profile-section">
+        <h2>🔐 Seguridad - Cambiar Contraseña</h2>
+        
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="cambiar_password">
+            
+            <p class="security-intro">
+                🛡️ Por tu seguridad, te recomendamos cambiar tu contraseña periódicamente y usar una combinación de letras, números y símbolos.
+            </p>
+
+            <div class="form-group">
+                <label for="password_actual">Contraseña Actual</label>
+                <input type="password" id="password_actual" name="password_actual" class="form-control" required>
+                <small class="help-text">Ingresa tu contraseña actual para verificar tu identidad</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password_nueva">Nueva Contraseña</label>
+                    <input type="password" id="password_nueva" name="password_nueva" class="form-control" minlength="8" required>
+                    <small class="help-text">Mínimo 8 caracteres</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password_confirmacion">Confirmar Nueva Contraseña</label>
+                    <input type="password" id="password_confirmacion" name="password_confirmacion" class="form-control" minlength="8" required>
+                </div>
+            </div>
+
+            <div class="warning-note">
+                <strong>⚠️ Nota Importante</strong>
+                <p>
+                    Después de cambiar tu contraseña, tendrás que iniciar sesión nuevamente con tus nuevas credenciales.
+                </p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-submit">🔐 Cambiar Contraseña</button>
+                <a href="{% url 'ticket_list' %}" class="btn btn-secondary">← Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    // Función para mostrar preview de la foto en el círculo
+    function mostrarPreviewFoto(event) {
+        const file = event.target.files[0];
+        
+        if (!file) {
+            return;
+        }
+
+        // Validar que sea una imagen
+        if (!file.type.startsWith('image/')) {
+            alert('❌ Por favor selecciona un archivo de imagen válido (JPG, PNG, GIF, etc.)');
+            document.getElementById('foto_perfil').value = '';
+            return;
+        }
+
+        // Validar tamaño (máx 10 MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('❌ La imagen es demasiado grande. Máximo 10 MB.');
+            document.getElementById('foto_perfil').value = '';
+            return;
+        }
+
+        // Crear URL temporal para mostrar preview en el círculo
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            // Obtener el contenedor de la foto
+            const fotoDisplay = document.getElementById('foto-display');
+            
+            // Si es un div, convertir a img
+            if (fotoDisplay.tagName === 'DIV') {
+                const img = document.createElement('img');
+                img.id = 'foto-display';
+                img.src = e.target.result;
+                img.alt = 'Preview de foto';
+                img.className = 'profile-photo';
+                img.style.animation = 'scaleIn 0.3s ease-out';
+                fotoDisplay.parentNode.replaceChild(img, fotoDisplay);
+            } else {
+                // Si ya es una imagen, solo actualizar el src con animación
+                fotoDisplay.style.animation = 'none';
+                fotoDisplay.offsetHeight; // Trigger reflow
+                fotoDisplay.style.animation = 'scaleIn 0.3s ease-out';
+                fotoDisplay.src = e.target.result;
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    // Animación de transición al navegar
+    document.addEventListener('DOMContentLoaded', function() {
+        const links = document.querySelectorAll('a:not([target="_blank"])');
+        const container = document.querySelector('.profile-container');
+        
+        links.forEach(link => {
+            link.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href && href.startsWith('/') && !href.startsWith('//')) {
+                    e.preventDefault();
+                    container.classList.remove('page-transition-enter');
+                    container.classList.add('page-transition-leave');
+                    
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 300);
+                }
+            });
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Editar Categoría FAQ - Panel Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_faqs.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <a href="{% url 'admin_faqs' %}" class="btn btn-outline-secondary">
+            ⬅️ Volver a FAQs
+        </a>
+    </div>
+    
+    <div class="form-card">
+        <div class="form-header">
+            <h1>✏️ Editar Categoría</h1>
+            <p>Modifica la información de la categoría</p>
+        </div>
+        
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="preview-icono" id="previewIcono">{{ categoria.icono }}</div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Icono de la Categoría</label>
+                <input type="hidden" name="icono" id="iconoInput" value="{{ categoria.icono }}">
+                <div class="emoji-picker">
+                    {% for emoji in "❓📁📊🎯📎👤💡🔧⚙️📱💻🌐🔒📧📞📅💳📈🚀✨🎉⚡🔥💬"|make_list %}
+                    <span class="emoji-option {% if categoria.icono == emoji %}selected{% endif %}" data-emoji="{{ emoji }}">{{ emoji }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="nombre" class="form-label fw-bold">Nombre de la Categoría <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="nombre" name="nombre" required maxlength="100" value="{{ categoria.nombre }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="descripcion" class="form-label fw-bold">Descripción</label>
+                <textarea class="form-control" id="descripcion" name="descripcion" rows="3" maxlength="500">{{ categoria.descripcion }}</textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="orden" class="form-label fw-bold">Orden de Visualización</label>
+                <input type="number" class="form-control" id="orden" name="orden" value="{{ categoria.orden }}" min="0">
+                <small class="text-muted">Número menor = aparece primero</small>
+            </div>
+            
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="activa" name="activa" {% if categoria.activa %}checked{% endif %}>
+                    <label class="form-check-label" for="activa">Categoría activa</label>
+                </div>
+                <small class="text-muted">Las categorías inactivas no se muestran a los usuarios</small>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    💾 Guardar Cambios
+                </button>
+                <a href="{% url 'admin_faqs' %}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.emoji-option').forEach(function(option) {
+    option.addEventListener('click', function() {
+        document.querySelectorAll('.emoji-option').forEach(function(o) {
+            o.classList.remove('selected');
+        });
+        this.classList.add('selected');
+        var emoji = this.getAttribute('data-emoji');
+        document.getElementById('iconoInput').value = emoji;
+        document.getElementById('previewIcono').textContent = emoji;
+    });
+});
+</script>
+{% endblock %}

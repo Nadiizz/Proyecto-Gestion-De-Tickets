@@ -1,0 +1,116 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Gestión de Subcategorías - Panel de Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_categorias.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{% url 'admin_panel' %}">📊 Panel Admin</a>
+    <span>/</span>
+    <span>📌 Subcategorías</span>
+</div>
+
+<!-- Header -->
+<div class="admin-header">
+    <div class="header-actions">
+        <div>
+            <h1>📌 Gestión de Subcategorías</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Administra las subcategorías disponibles en el sistema</p>
+        </div>
+        <a href="{% url 'admin_crear_subcategoria' %}" class="btn-crear">
+            ➕ Nueva Subcategoría
+        </a>
+    </div>
+</div>
+
+<!-- Filtro por categoría -->
+<div class="filter-section">
+    <label for="categoria-filter">Filtrar por categoría:</label>
+    <select id="categoria-filter" onchange="window.location.href=this.value">
+        <option value="{% url 'admin_subcategorias' %}">Todas las categorías</option>
+        {% for cat in categorias %}
+            <option value="{% url 'admin_subcategorias' %}?categoria={{ cat.id }}"
+                    {% if categoria_seleccionada.id == cat.id %}selected{% endif %}>
+                {{ cat.nombre }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- Estadísticas -->
+<div class="stats-row">
+    <div class="stat-card">
+        <h3>Total de Subcategorías</h3>
+        <p class="stat-value">{{ total_subcategorias }}</p>
+    </div>
+    {% if categoria_seleccionada %}
+    <div class="stat-card">
+        <h3>Categoría Seleccionada</h3>
+        <p class="stat-value">{{ categoria_seleccionada.nombre }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tabla de subcategorías -->
+{% if subcategorias %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 20%;">Categoría</th>
+                <th style="width: 25%;">Nombre</th>
+                <th style="width: 35%;">Descripción</th>
+                <th style="width: 10%;">Estado</th>
+                <th style="width: 10%;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subcategoria in subcategorias %}
+            <tr>
+                <td>
+                    <span class="categoria-badge">{{ subcategoria.categoria.nombre }}</span>
+                </td>
+                <td><strong>{{ subcategoria.nombre }}</strong></td>
+                <td class="description-cell">{{ subcategoria.descripcion|default:"Sin descripción" }}</td>
+                <td>
+                    {% if subcategoria.activa %}
+                        <span class="status-badge status-activa">✓ Activa</span>
+                    {% else %}
+                        <span class="status-badge status-inactiva">✗ Inactiva</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'admin_editar_subcategoria' subcategoria.id %}" class="btn-sm btn-editar">
+                            ✏️ Editar
+                        </a>
+                        <a href="{% url 'admin_eliminar_subcategoria' subcategoria.id %}" class="btn-sm btn-eliminar" onclick="return confirm('¿Estás seguro de que deseas eliminar esta subcategoría?');">
+                            🗑️ Eliminar
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="table-container">
+    <div class="empty-state">
+        <p style="font-size: 2rem;">📭</p>
+        <p>No hay subcategorías creadas {% if categoria_seleccionada %}en "{{ categoria_seleccionada.nombre }}"{% endif %}</p>
+        <a href="{% url 'admin_crear_subcategoria' %}" class="btn-crear" style="margin-top: 1rem;">
+            ➕ Crear Primera Subcategoría
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

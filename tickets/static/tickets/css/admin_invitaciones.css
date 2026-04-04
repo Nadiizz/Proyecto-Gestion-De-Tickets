@@ -1,0 +1,275 @@
+/* ============================================
+   ESTILOS PARA GESTIÓN DE INVITACIONES
+   ============================================ */
+
+/* Tabla de Invitaciones */
+.invitations-table {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.invitations-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.invitations-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.invitations-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.invitations-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.invitations-table tbody tr {
+    transition: background 0.2s;
+}
+
+.invitations-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Badges de Estado */
+.invitation-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-pendiente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-aceptada {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-expirada {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.badge-cancelada {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Información de Invitado */
+.invitado-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.invitado-nombre {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.invitado-email {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* Filtros de Invitaciones */
+.invitations-filters {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    background: white;
+    color: #2c3e50;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.filter-tab:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.filter-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+/* Link de Invitación */
+.invitation-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.invitation-link input {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    background: white;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.copy-button {
+    padding: 0.5rem 1rem;
+    background: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.copy-button:hover {
+    background: #1976d2;
+}
+
+/* Vista Pública de Invitación */
+.invitation-public-container {
+    max-width: 600px;
+    margin: 3rem auto;
+    padding: 2rem;
+}
+
+.invitation-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.invitation-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.invitation-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+}
+
+.invitation-body {
+    padding: 2rem;
+}
+
+.invitation-details {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.detail-value {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Invitación Expirada */
+.expired-message {
+    text-align: center;
+    padding: 2rem;
+    color: #e74c3c;
+}
+
+.expired-message i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+/* Avatar del Usuario en Tabla */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    font-size: 1.1rem;
+    border: 2px solid #667eea;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.user-avatar.initial {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.user-email {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+

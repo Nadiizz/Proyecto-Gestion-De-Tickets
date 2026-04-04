@@ -1,0 +1,271 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/metricas.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="metricas-container">
+    <div class="metricas-header">
+        <h1>📊 Métricas y Estadísticas del Sistema</h1>
+        <div class="periodo-selector">
+            <label>Período:</label>
+            <select id="periodo-select" onchange="cambiarPeriodo(this.value)">
+                <option value="7" {% if dias == 7 %}selected{% endif %}>Últimos 7 días</option>
+                <option value="30" {% if dias == 30 %}selected{% endif %}>Últimos 30 días</option>
+                <option value="90" {% if dias == 90 %}selected{% endif %}>Últimos 90 días</option>
+                <option value="365" {% if dias == 365 %}selected{% endif %}>Último año</option>
+                <option value="0" {% if dias == 0 %}selected{% endif %}>Todo el tiempo</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- RENDIMIENTO -->
+    <section class="metricas-section">
+        <h2>🚀 Métricas de Rendimiento</h2>
+        <div class="stats-grid">
+            <div class="metric-card volumen">
+                <div class="metric-icon">📈</div>
+                <div class="metric-content">
+                    <h3>{{ tickets_totales }}</h3>
+                    <p>Tickets Totales</p>
+                    <small>En los últimos {{ dias }} días</small>
+                </div>
+            </div>
+
+            <div class="metric-card resueltos">
+                <div class="metric-icon">✅</div>
+                <div class="metric-content">
+                    <h3>{{ tickets_resueltos }}</h3>
+                    <p>Tickets Resueltos</p>
+                    <small>{{ tickets_resueltos|floatformat:0 }} de {{ tickets_totales }}</small>
+                </div>
+            </div>
+
+            <div class="metric-card pendientes">
+                <div class="metric-icon">⏳</div>
+                <div class="metric-content">
+                    <h3>{{ tickets_pendientes }}</h3>
+                    <p>Tickets Pendientes</p>
+                    <small>En progreso actualmente</small>
+                </div>
+            </div>
+
+            <div class="metric-card excedidos">
+                <div class="metric-icon">⚠️</div>
+                <div class="metric-content">
+                    <h3>{{ tickets_tiempo_excedido }}</h3>
+                    <p>SLA Excedido</p>
+                    <small>Tiempo límite superado</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid-two">
+            <div class="metric-card-large tiempo-respuesta">
+                <div class="metric-header">
+                    <div class="metric-icon">⚡</div>
+                    <h4>Tiempo de Primera Respuesta</h4>
+                </div>
+                <div class="metric-value">
+                    <h2>{{ tiempo_promedio_primera_respuesta }} hrs</h2>
+                    <p>Tiempo promedio que tardan los técnicos en dar la primera respuesta</p>
+                </div>
+            </div>
+
+            <div class="metric-card-large tiempo-resolucion">
+                <div class="metric-header">
+                    <div class="metric-icon">🎯</div>
+                    <h4>Tiempo de Resolución</h4>
+                </div>
+                <div class="metric-value">
+                    <h2>{{ tiempo_promedio_resolucion }} hrs</h2>
+                    <p>Tiempo promedio desde apertura hasta cierre del ticket</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CALIDAD -->
+    <section class="metricas-section">
+        <h2>⭐ Métricas de Calidad</h2>
+        <div class="stats-grid">
+            <div class="metric-card satisfaccion">
+                <div class="metric-icon">😊</div>
+                <div class="metric-content">
+                    <h3>{{ satisfaccion_promedio }}/5</h3>
+                    <p>Satisfacción del Cliente (CSAT)</p>
+                    <small>Basado en {{ total_calificaciones }} calificaciones</small>
+                    <div class="stars-container">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= satisfaccion_promedio %}
+                                <span class="star filled">⭐</span>
+                            {% else %}
+                                <span class="star">☆</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card usuario-activo">
+                <div class="metric-icon">👤</div>
+                <div class="metric-content">
+                    {% if usuario_mas_activo %}
+                        <h3>{{ usuario_mas_activo.total_tickets }}</h3>
+                        <p>Usuario Más Activo</p>
+                        <small>
+                            {{ usuario_mas_activo.creador__username }}
+                            {% if usuario_mas_activo.creador__first_name %}
+                                - {{ usuario_mas_activo.creador__first_name }} {{ usuario_mas_activo.creador__last_name }}
+                            {% endif %}
+                        </small>
+                    {% else %}
+                        <h3>-</h3>
+                        <p>Usuario Más Activo</p>
+                        <small>Sin datos</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="metric-card sla">
+                <div class="metric-icon">📅</div>
+                <div class="metric-content">
+                    <h3>{{ tasa_cumplimiento_sla }}%</h3>
+                    <p>Cumplimiento SLA</p>
+                    <small>{{ tickets_sla_cumplido }} de {{ tickets_con_sla }} tickets</small>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CAUSAS RAÍZ Y RESOLUCIÓN -->
+    <section class="metricas-section">
+        <h2>🔍 Causas Raíz y Resolución</h2>
+        
+        <div class="resolution-grid">
+            <div class="resolution-card">
+                <h4>📋 Tickets por Tipo</h4>
+                <div class="chart-container">
+                    {% for tipo in tickets_por_tipo %}
+                    <div class="bar-chart-item">
+                        <div class="bar-label">{{ tipo.tipo|title }}</div>
+                        <div class="bar-wrapper">
+                            <div class="bar-fill" data-width="{{ tipo.porcentaje }}">
+                                <span class="bar-value">{{ tipo.total }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="resolution-card">
+                <h4>📁 Tickets por Categoría (Top 10)</h4>
+                <div class="chart-container">
+                    {% for area in tickets_por_area %}
+                    <div class="bar-chart-item">
+                        <div class="bar-label">{{ area.categoria__nombre }}</div>
+                        <div class="bar-wrapper">
+                            <div class="bar-fill" data-width="{{ area.porcentaje }}">
+                                <span class="bar-value">{{ area.total }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="resolution-card">
+                <h4>🔥 Tickets por Prioridad</h4>
+                <div class="priority-grid">
+                    {% for prioridad in tickets_por_prioridad %}
+                    <div class="priority-item priority-{{ prioridad.prioridad }}">
+                        <div class="priority-icon">
+                            {% if prioridad.prioridad == 'critica' %}🔴
+                            {% elif prioridad.prioridad == 'alta' %}🟠
+                            {% elif prioridad.prioridad == 'media' %}🟡
+                            {% else %}🟢{% endif %}
+                        </div>
+                        <div class="priority-info">
+                            <h5>{{ prioridad.prioridad|title }}</h5>
+                            <p class="priority-count">{{ prioridad.total }} tickets</p>
+                            <p class="priority-percent">{% widthratio prioridad.total tickets_totales 100 %}%</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EFICIENCIA -->
+    <section class="metricas-section">
+        <h2>⚙️ Métricas de Eficiencia</h2>
+        
+        <div class="efficiency-grid">
+            <div class="efficiency-card">
+                <h4>📊 Tickets por Técnico</h4>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Técnico</th>
+                                <th>Total Asignados</th>
+                                <th>Resueltos</th>
+                                <th>Tasa Resolución</th>
+                                <th>⭐ Calificación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tecnico in tickets_por_tecnico %}
+                            <tr>
+                                <td>{{ tecnico.asignado_a__username }}</td>
+                                <td>{{ tecnico.total }}</td>
+                                <td>{{ tecnico.resueltos }}</td>
+                                <td>
+                                    {% widthratio tecnico.resueltos tecnico.total 100 %}%
+                                </td>
+                                <td>
+                                    {% if tecnico.calificacion_promedio %}
+                                        {{ tecnico.calificacion_promedio|floatformat:1 }} / 5.0
+                                    {% else %}
+                                        <span class="text-muted">Sin calificaciones</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No hay datos disponibles</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function cambiarPeriodo(dias) {
+        window.location.href = `?dias=${dias}`;
+    }
+
+    // Aplicar anchos dinámicos a las barras de gráficos
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.bar-fill[data-width]').forEach(bar => {
+            const width = bar.getAttribute('data-width');
+            bar.style.width = width + '%';
+        });
+    });
+
+    // Limpiar marca de dashboard
+    sessionStorage.removeItem('inDashboard');
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Gestión de Categorías - Panel de Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_categorias.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{% url 'admin_panel' %}">📊 Panel Admin</a>
+    <span>/</span>
+    <span>📂 Categorías</span>
+</div>
+
+<!-- Header -->
+<div class="admin-header">
+    <div class="header-actions">
+        <div>
+            <h1>📂 Gestión de Categorías</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Administra las categorías disponibles en el sistema</p>
+        </div>
+        <a href="{% url 'admin_crear_categoria' %}" class="btn-crear">
+            ➕ Nueva Categoría
+        </a>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="stats-row">
+    <div class="stat-card">
+        <h3>Total de Categorías</h3>
+        <p class="stat-value">{{ total_categorias }}</p>
+    </div>
+</div>
+
+<!-- Tabla de categorías -->
+{% if categorias %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 30%;">Nombre</th>
+                <th style="width: 40%;">Descripción</th>
+                <th style="width: 15%;">Estado</th>
+                <th style="width: 15%;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for categoria in categorias %}
+            <tr>
+                <td><strong>{{ categoria.nombre }}</strong></td>
+                <td class="description-cell">{{ categoria.descripcion|default:"Sin descripción" }}</td>
+                <td>
+                    {% if categoria.activa %}
+                        <span class="status-badge status-activa">✓ Activa</span>
+                    {% else %}
+                        <span class="status-badge status-inactiva">✗ Inactiva</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'admin_editar_categoria' categoria.id %}" class="btn-sm btn-editar">
+                            ✏️ Editar
+                        </a>
+                        <a href="{% url 'admin_eliminar_categoria' categoria.id %}" class="btn-sm btn-eliminar" onclick="return confirm('¿Estás seguro de que deseas eliminar esta categoría?');">
+                            🗑️ Eliminar
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="table-container">
+    <div class="empty-state">
+        <p style="font-size: 2rem;">📭</p>
+        <p>No hay categorías creadas aún</p>
+        <a href="{% url 'admin_crear_categoria' %}" class="btn-crear" style="margin-top: 1rem;">
+            ➕ Crear Primera Categoría
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

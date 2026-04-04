@@ -1,0 +1,194 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/notificaciones.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="content-header">
+        <h2>📢 Mis Notificaciones</h2>
+        <div class="header-actions">
+            {% if total_notificaciones > 0 %}
+                <button class="btn btn-primary" onclick="marcarTodasLeidasNotificaciones()">✓ Marcar todas como leídas</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-section">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label for="tipo">Tipo de Notificación:</label>
+                <select name="tipo" id="tipo" class="form-select">
+                    <option value="">Todos</option>
+                    {% for value, label in tipos_notificacion %}
+                        <option value="{{ value }}" {% if tipo_filtro == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="prioridad">Prioridad:</label>
+                <select name="prioridad" id="prioridad" class="form-select">
+                    <option value="">Todas</option>
+                    {% for value, label in prioridades %}
+                        <option value="{{ value }}" {% if prioridad_filtro == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="leida">Estado:</label>
+                <select name="leida" id="leida" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="false" {% if leida_filtro == 'false' %}selected{% endif %}>No leídas</option>
+                    <option value="true" {% if leida_filtro == 'true' %}selected{% endif %}>Leídas</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+            <a href="{% url 'lista_notificaciones' %}" class="btn btn-secondary">Limpiar</a>
+        </form>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_notificaciones }}</div>
+            <div class="stat-label">Total de Notificaciones</div>
+        </div>
+        {% if page_obj %}
+            {% if total_notificaciones > page_obj|length %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ page_obj|length }}</div>
+                    <div class="stat-label">En esta página</div>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- Lista de Notificaciones -->
+    {% if page_obj %}
+        <div class="notifications-list">
+            {% for notificacion in page_obj %}
+                <div class="notification-card {% if not notificacion.leida %}unread{% endif %}" data-id="{{ notificacion.id }}">
+                    <div class="notification-card-header">
+                        <div class="notification-title-section">
+                            <!-- Emoji según tipo -->
+                            <span class="notification-emoji">
+                                {% if notificacion.tipo == 'ticket_creado' %}📌
+                                {% elif notificacion.tipo == 'ticket_asignado' %}📋
+                                {% elif notificacion.tipo == 'tu_ticket_asignado' %}👤
+                                {% elif notificacion.tipo == 'ticket_reasignado' %}🔄
+                                {% elif notificacion.tipo == 'ticket_comentario' %}💬
+                                {% elif notificacion.tipo == 'ticket_en_progreso' %}🛠️
+                                {% elif notificacion.tipo == 'ticket_resuelto' %}✅
+                                {% elif notificacion.tipo == 'estado_cambio' %}🔄
+                                {% elif notificacion.tipo == 'ticket_cerrado' %}🔒
+                                {% elif notificacion.tipo == 'ticket_cerrado_exito' %}🎉
+                                {% elif notificacion.tipo == 'solucion_rechazada' %}❌
+                                {% elif notificacion.tipo == 'ticket_reabierto' %}🔓
+                                {% elif notificacion.tipo == 'ticket_requiere_validacion' %}⚠️
+                                {% else %}📢{% endif %}
+                            </span>
+                            <div class="notification-info">
+                                <h3 class="notification-title">{{ notificacion.titulo }}</h3>
+                                <p class="notification-type">
+                                    {% for value, label in tipos_notificacion %}
+                                        {% if value == notificacion.tipo %}{{ label }}{% endif %}
+                                    {% endfor %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="notification-status">
+                            {% if notificacion.prioridad == 'critica' %}
+                                <span class="priority-badge priority-critical">🔴 CRÍTICA</span>
+                            {% elif notificacion.prioridad == 'alta' %}
+                                <span class="priority-badge priority-high">🟠 ALTA</span>
+                            {% elif notificacion.prioridad == 'media' %}
+                                <span class="priority-badge priority-medium">🔵 MEDIA</span>
+                            {% else %}
+                                <span class="priority-badge priority-low">🟢 BAJA</span>
+                            {% endif %}
+                            
+                            {% if notificacion.leida %}
+                                <span class="status-badge read">Leída</span>
+                            {% else %}
+                                <span class="status-badge unread">Sin leer</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="notification-content">
+                        <p class="notification-message">{{ notificacion.mensaje }}</p>
+                        
+                        <div class="notification-footer">
+                            <div class="notification-metadata">
+                                <span class="meta-item">📅 {{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                                {% if notificacion.ticket %}
+                                    <span class="meta-item">🎫 Ticket #{{ notificacion.ticket.id }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="notification-actions">
+                                {% if notificacion.enlace %}
+                                    <a href="{{ notificacion.enlace }}" class="btn btn-primary btn-small">Ver más →</a>
+                                {% endif %}
+                                {% if not notificacion.leida %}
+                                    <button class="btn btn-secondary btn-small" data-notif-id="{{ notificacion.id }}" onclick="marcarNotificacionLeida(this.dataset.notifId, event)">Marcar como leída</button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Información de entrega -->
+                        {% if notificacion.email_enviado or notificacion.whatsapp_enviado %}
+                            <div class="delivery-info">
+                                {% if notificacion.email_enviado %}
+                                    <span class="delivery-badge email" title="Email enviado el {{ notificacion.email_fecha|date:'d/m/Y H:i' }}">✉️ Email</span>
+                                {% endif %}
+                                {% if notificacion.whatsapp_enviado %}
+                                    <span class="delivery-badge whatsapp" title="WhatsApp enviado el {{ notificacion.whatsapp_fecha|date:'d/m/Y H:i' }}">💬 WhatsApp</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">« Primera</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">‹ Anterior</a>
+                {% endif %}
+
+                <div class="page-numbers">
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="page-current">{{ num }}</span>
+                        {% else %}
+                            <a href="?page={{ num }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">Siguiente ›</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}{% if prioridad_filtro %}&prioridad={{ prioridad_filtro }}{% endif %}{% if leida_filtro %}&leida={{ leida_filtro }}{% endif %}" class="page-link">Última »</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>No hay notificaciones</h3>
+            <p>No hay notificaciones que coincidan con los filtros aplicados.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<script src="{% static 'tickets/js/notificaciones.js' %}"></script>
+{% endblock %}

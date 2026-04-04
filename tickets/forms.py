@@ -2,7 +2,15 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
+from django.conf import settings
+from .models import Ticket, ArchivoTicket, ArchivoComentario
 import re
+
+# Importar constantes desde settings
+GRUPO_ADMINISTRADOR = settings.GRUPO_ADMINISTRADOR
+GRUPO_TECNICO = settings.GRUPO_TECNICO
+GRUPO_USUARIO = settings.GRUPO_USUARIO
+
 
 class CustomUserCreationForm(UserCreationForm):
     username = forms.CharField(
@@ -62,9 +70,86 @@ class CustomUserCreationForm(UserCreationForm):
             # Asignar el usuario al grupo correspondiente
             tipo_usuario = self.cleaned_data.get('tipo_usuario')
             if tipo_usuario == 'tecnico':
-                grupo = Group.objects.get(name='Técnico')
+                grupo = Group.objects.get(name=GRUPO_TECNICO)
             else:
-                grupo = Group.objects.get(name='Usuario')
+                grupo = Group.objects.get(name=GRUPO_USUARIO)
             user.groups.add(grupo)
             
         return user
+
+
+# Formulario para búsqueda avanzada de tickets
+class BusquedaTicketForm(forms.Form):
+    busqueda = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar por título o descripción...'
+        }),
+        label=''
+    )
+    estado = forms.ChoiceField(
+        required=False,
+        choices=[('', 'Todos los estados')] + Ticket.ESTADOS,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label=''
+    )
+    prioridad = forms.ChoiceField(
+        required=False,
+        choices=[('', 'Todas las prioridades')] + Ticket.PRIORIDADES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label=''
+    )
+    categoria = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Filtrar por categoría...'
+        }),
+        label=''
+    )
+    asignado_a = forms.ModelChoiceField(
+        required=False,
+        queryset=User.objects.filter(groups__name=GRUPO_TECNICO),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='',
+        empty_label='Todos los técnicos'
+    )
+
+
+# Formulario para crear tickets con archivos adjuntos (sin prioridad, la asigna el admin)
+class TicketForm(forms.ModelForm):
+    
+    class Meta:
+        model = Ticket
+        fields = ['titulo', 'tipo', 'categoria', 'subcategoria', 'descripcion']
+        widgets = {
+            'titulo': forms.TextInput(attrs={
+                'class': 'form-input', 
+                'placeholder': 'Ej: Problema con la impresora del piso 3',
+                'maxlength': '200'
+            }),
+            'tipo': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'categoria': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_categoria'
+            }),
+            'subcategoria': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_subcategoria'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-textarea', 
+                'placeholder': 'Describe el problema en detalle. Incluye pasos para reproducirlo, mensajes de error, equipo afectado, y cualquier información relevante...',
+                'rows': 6
+            }),
+        }
+        labels = {
+            'titulo': 'Título',
+            'tipo': 'Tipo de Solicitud',
+            'categoria': 'Categoría',
+            'subcategoria': 'Subcategoría',
+            'descripcion': 'Descripción',
+        }

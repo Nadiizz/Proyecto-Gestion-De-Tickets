@@ -3,19 +3,34 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     {% load static %}
     <title>Gestión de Tickets - Coyahue</title>
+    <!-- Estilos centralizados y comunes -->
+    <link rel="stylesheet" href="{% static 'tickets/css/common.css' %}">
     <link rel="stylesheet" href="{% static 'tickets/css/styles.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
     <div class="dashboard-container">
+        <!-- Botón Hamburguesa (solo móvil) -->
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <!-- Overlay para cerrar menú (móvil) -->
+        <div class="menu-overlay" id="menuOverlay"></div>
+
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="user-info">
-                    <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Logo" style="height: 100px; margin-bottom: 1rem;">
+                    <img src="{% static 'tickets/img/logo-grupocoyahue.png' %}" alt="Logo" class="sidebar-logo">
                     <div class="company-info">
                     </div>
                 </div>
@@ -25,15 +40,45 @@
                 <ul class="sidebar-menu">
                     <li><a href="{% url 'ticket_list' %}" class="{% if request.resolver_match.url_name == 'ticket_list' %}active{% endif %}">📊 Dashboard</a></li>
                     <li><a href="{% url 'ticket_create' %}" class="{% if request.resolver_match.url_name == 'ticket_create' %}active{% endif %}">📋 Crear Ticket</a></li>
+                    
+                    <!-- Métricas (para administradores o usuarios con permiso) -->
+                    {% if permisos.puede_ver_metricas %}
+                    <li><a href="{% url 'metricas' %}" class="{% if request.resolver_match.url_name == 'metricas' %}active{% endif %}">📈 Métricas</a></li>
+                    {% endif %}
+                    
+                    <!-- Panel Admin (para administradores o usuarios con permisos de gestión) -->
+                    {% if permisos.puede_acceder_admin %}
+                    <li><a href="{% url 'admin_panel' %}" class="{% if 'admin' in request.path %}active{% endif %}">🎛️ Panel Admin</a></li>
+                    {% endif %}
+                    
                     <!-- Menú TICKETS-->
                     <li class="menu-section">🎫 TICKETS</li>
                     <li><a href="{% url 'ticket_list' %}?estado=pendiente" class="{% if request.GET.estado == 'pendiente' %}active{% endif %}">⏳ Pendientes</a></li>
-                    <li><a href="{% url 'ticket_list' %}?estado=abierto" class="{% if request.GET.estado == 'abierto' %}active{% endif %}">🟡 Abiertos</a></li>
                     <li><a href="{% url 'ticket_list' %}?estado=en_progreso" class="{% if request.GET.estado == 'en_progreso' %}active{% endif %}">🔵 En Progreso</a></li>
                     <li><a href="{% url 'ticket_list' %}?estado=resuelto" class="{% if request.GET.estado == 'resuelto' %}active{% endif %}">🟢 Resueltos</a></li>
+                    <li><a href="{% url 'ticket_list' %}?estado=cerrado" class="{% if request.GET.estado == 'cerrado' %}active{% endif %}">⚫ Cerrados</a></li>
+                    <li><a href="{% url 'ticket_list' %}?estado=tiempo_excedido" class="{% if request.GET.estado == 'tiempo_excedido' %}active{% endif %}">⚠️ SLA Excedido</a></li>
+                    
                     <!-- Usuario -->
                     <li class="menu-section">👤 USUARIO</li>
-                    <li><a href="{% url 'login' %}">🚪 Cerrar Sesión</a></li>
+                    <li><a href="{% url 'mi_perfil' %}" class="{% if request.resolver_match.url_name == 'mi_perfil' %}active{% endif %}">⚙️ Mi Perfil</a></li>
+                    <li><a href="{% url 'mis_tickets' %}" class="{% if request.resolver_match.url_name == 'mis_tickets' %}active{% endif %}">🎫 Mis Tickets</a></li>
+                    
+                    <!-- Mis Asignaciones (para técnicos, admins o usuarios con permiso de cambiar estado) -->
+                    {% if permisos.es_tecnico or permisos.es_admin or permisos.puede_cambiar_estado %}
+                    <li><a href="{% url 'mis_asignaciones' %}" class="{% if request.resolver_match.url_name == 'mis_asignaciones' %}active{% endif %}">🎯 Mis Asignaciones</a></li>
+                    {% endif %}
+                    
+                    <!-- Validar Prioridad (para supervisores con permiso) -->
+                    {% if permisos.puede_validar_prioridad %}
+                    <li><a href="{% url 'lista_tickets_pendientes_validacion' %}" class="{% if 'validar' in request.path or 'validacion' in request.path %}active{% endif %}">⚖️ Validar Prioridad</a></li>
+                    {% endif %}
+                    
+                    <!-- Ayuda -->
+                    <li class="menu-section">❓ AYUDA</li>
+                    <li><a href="{% url 'faqs' %}" class="{% if request.resolver_match.url_name == 'faqs' %}active{% endif %}">📚 Preguntas Frecuentes</a></li>
+                    
+                    <li><a href="{% url 'logout' %}">🚪 Cerrar Sesión</a></li>
                 </ul>
             </nav>
         </aside>
@@ -44,19 +89,126 @@
                     <h1>Sistema de Tickets - Grupo Coyahue</h1>
                 </div>
                 <div class="header-right">
-                    <span class="user-welcome">Bienvenido, {{ user.username }}</span>
-                    <span class="user-role-badge">
-                        {% if user.groups.all %}
-                            {{ user.groups.all.0.name }}
+                    <!-- Campana de Notificaciones -->
+                    <div class="notification-bell-container">
+                        <button id="campana-notificaciones" class="notification-bell" aria-label="Notificaciones" title="Notificaciones">
+                            🔔
+                            <span id="contador-notificaciones" class="notification-badge hidden">0</span>
+                        </button>
+                        <div id="dropdown-notificaciones" class="notification-dropdown hidden">
+                            <div class="dropdown-header">
+                                <h3>Notificaciones</h3>
+                                <button class="btn-marcar-todos" onclick="marcarTodasLeidasNotificaciones()" title="Marcar todas como leídas">✓ Marcar todas</button>
+                            </div>
+                            <div id="dropdown-body-notificaciones" class="dropdown-body">
+                                <div class="text-center text-gray-500 py-4">Cargando...</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="user-info-header">
+                        {% if user.perfilusuario.foto_perfil %}
+                            <img src="{{ user.perfilusuario.foto_perfil.url }}" alt="{{ user.username }}" class="user-avatar-header">
                         {% else %}
-                            Usuario
+                            <div class="user-avatar-header initial">{{ user.first_name|first|upper|default:user.username|first|upper }}</div>
                         {% endif %}
+                        <span class="user-welcome">Bienvenido, {{ user.first_name|default:user.username }} {{ user.last_name }}</span>
+                    </div>
+                    <span class="user-role-badge">
+                        {% with user_group=user.groups.all|first %}
+                            {% if user_group %}
+                                {{ user_group.name }}
+                            {% else %}
+                                Usuario
+                            {% endif %}
+                        {% endwith %}
                     </span>
                 </div>
             </header>
             
+            <!-- Mensajes del sistema -->
+            {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
             {% block content %}{% endblock %}
         </main>
     </div>
+    
+    <script>
+        // Toggle menú hamburguesa
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', () => {
+                const isOpen = sidebar.classList.toggle('open');
+                menuToggle.setAttribute('aria-expanded', isOpen);
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+            });
+
+            // Cerrar menú al hacer clic en overlay
+            menuOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                menuToggle.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            });
+
+            // Cerrar menú al hacer clic en un enlace
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('open');
+                        menuToggle.setAttribute('aria-expanded', 'false');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+
+            // Cerrar menú con tecla Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                    menuToggle.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // Cerrar mensajes automáticamente después de 5 segundos
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-20px)';
+                    setTimeout(() => alert.remove(), 300);
+                }, 5000);
+            });
+
+            // Cerrar mensajes manualmente
+            document.querySelectorAll('.btn-close').forEach(button => {
+                button.addEventListener('click', function() {
+                    const alert = this.parentElement;
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-20px)';
+                    setTimeout(() => alert.remove(), 300);
+                });
+            });
+        });
+    </script>
+    
+    <!-- Script para sistema de notificaciones -->
+    <script src="{% static 'tickets/js/notificaciones.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

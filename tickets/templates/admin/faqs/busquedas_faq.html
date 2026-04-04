@@ -1,0 +1,178 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Búsquedas en FAQs - Panel Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_faqs.css' %}">
+<style>
+    /* Estilos específicos de esta página */
+    .busqueda-item.sin-resultados {
+        background: #fff3cd;
+        border-left: 3px solid #ffc107;
+    }
+    
+    .busqueda-termino {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .busqueda-info {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .termino-sin-resultados {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        background: #fff3cd;
+        border-left: 3px solid #ffc107;
+        margin-bottom: 0.5rem;
+    }
+    
+    .badge-count {
+        background: #dc3545;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <a href="{% url 'admin_faqs' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver a FAQs
+        </a>
+    </div>
+    
+    <!-- Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-search me-3"></i>Análisis de Búsquedas en FAQs</h1>
+        <p class="mb-0 mt-2 opacity-75">Monitorea qué buscan los usuarios para identificar qué FAQs agregar</p>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">🔍</div>
+                <div class="stat-number">{{ stats.total|default:0 }}</div>
+                <div class="stat-label">Búsquedas totales ({{ dias }} días)</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-number text-success">{{ stats.con_resultados|default:0 }}</div>
+                <div class="stat-label">Con resultados</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">❌</div>
+                <div class="stat-number text-danger">{{ stats.sin_resultados|default:0 }}</div>
+                <div class="stat-label">Sin resultados</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="filter-card">
+        <form method="GET" class="row align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Filtrar por</label>
+                <select name="filtro" class="form-select">
+                    <option value="todas" {% if filtro == 'todas' %}selected{% endif %}>Todas las búsquedas</option>
+                    <option value="sin_resultados" {% if filtro == 'sin_resultados' %}selected{% endif %}>Solo sin resultados</option>
+                    <option value="con_resultados" {% if filtro == 'con_resultados' %}selected{% endif %}>Solo con resultados</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Período</label>
+                <select name="dias" class="form-select">
+                    <option value="7" {% if dias == 7 %}selected{% endif %}>Últimos 7 días</option>
+                    <option value="30" {% if dias == 30 %}selected{% endif %}>Últimos 30 días</option>
+                    <option value="90" {% if dias == 90 %}selected{% endif %}>Últimos 90 días</option>
+                    <option value="365" {% if dias == 365 %}selected{% endif %}>Último año</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="row">
+        <!-- Términos sin resultados (para crear FAQs) -->
+        <div class="col-lg-4">
+            <div class="section-card">
+                <h3 class="section-title">⚠️ Sugerencias de FAQs</h3>
+                <p class="text-muted small mb-3">Estos términos no encontraron resultados. ¡Considera crear FAQs para ellos!</p>
+                
+                {% if terminos_sin_resultados %}
+                    {% for termino in terminos_sin_resultados %}
+                    <div class="termino-sin-resultados">
+                        <strong>"{{ termino.termino }}"</strong>
+                        <span class="badge-count">{{ termino.total }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+                        <span>¡Todas las búsquedas encontraron resultados!</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Historial de búsquedas -->
+        <div class="col-lg-8">
+            <div class="section-card">
+                <h3 class="section-title">📋 Historial de Búsquedas</h3>
+                
+                {% if busquedas %}
+                    {% for busqueda in busquedas %}
+                    <div class="busqueda-item {% if not busqueda.encontro_resultados %}sin-resultados{% endif %}">
+                        <div>
+                            <span class="busqueda-termino">"{{ busqueda.termino }}"</span>
+                            {% if busqueda.usuario %}
+                            <span class="text-muted small ms-2">por {{ busqueda.usuario.get_full_name|default:busqueda.usuario.username }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="busqueda-info">
+                            {% if busqueda.encontro_resultados %}
+                            <span class="text-success">
+                                <i class="fas fa-check-circle"></i> {{ busqueda.cantidad_resultados }} resultado{{ busqueda.cantidad_resultados|pluralize }}
+                            </span>
+                            {% else %}
+                            <span class="text-warning">
+                                <i class="fas fa-times-circle"></i> Sin resultados
+                            </span>
+                            {% endif %}
+                            <span><i class="fas fa-clock"></i> {{ busqueda.fecha|timesince }} atrás</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h5>No hay búsquedas registradas</h5>
+                        <p>Las búsquedas de los usuarios aparecerán aquí</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

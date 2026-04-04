@@ -1,0 +1,130 @@
+﻿{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Invitaciones - Coyahue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_common.css' %}">
+<link rel="stylesheet" href="{% static 'tickets/css/admin_invitaciones.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1> Gestión de Invitaciones</h1>
+    <a href="{% url 'admin_crear_invitacion' %}" class="btn-primary-custom">
+         Enviar Nueva Invitación
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="filters-section">
+    <form method="get" class="filters-form">
+        <div class="form-group">
+            <label for="estado">Estado</label>
+            <select id="estado" name="estado" class="form-control">
+                <option value="">Todos</option>
+                <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                <option value="aceptada" {% if estado_filtro == 'aceptada' %}selected{% endif %}>Aceptada</option>
+                <option value="expirada" {% if estado_filtro == 'expirada' %}selected{% endif %}>Expirada</option>
+                <option value="cancelada" {% if estado_filtro == 'cancelada' %}selected{% endif %}>Cancelada</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn-primary-custom"> Filtrar</button>
+    </form>
+</div>
+
+<!-- Tabla de invitaciones -->
+{% if invitaciones %}
+<div class="invitations-table">
+    <table>
+        <thead>
+            <tr>
+                <th>Invitado</th>
+                <th>Grupo/Rol</th>
+                <th>Estado</th>
+                <th>Invitado por</th>
+                <th>Fecha Invitación</th>
+                <th>Expira</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for invitacion in invitaciones %}
+            <tr>
+                <td>
+                    <div class="user-info">
+                        <div class="user-avatar initial">{{ invitacion.nombre_completo|first|upper }}</div>
+                        <div class="user-details">
+                            <span class="user-name">{{ invitacion.nombre_completo }}</span>
+                            <span class="user-email">{{ invitacion.email }}</span>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-{{ invitacion.grupo_django|lower }}">{{ invitacion.grupo_django }}</span>
+                    {% if invitacion.rol_personalizado %}
+                    <br>
+                    <small style="color: {{ invitacion.rol_personalizado.color }};">
+                        {{ invitacion.rol_personalizado.nombre }}
+                    </small>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-{{ invitacion.estado }}">{{ invitacion.get_estado_display }}</span>
+                </td>
+                <td>{{ invitacion.invitado_por.username }}</td>
+                <td>{{ invitacion.fecha_invitacion|date:"d/m/Y H:i" }}</td>
+                <td>
+                    {% if invitacion.estado == 'pendiente' %}
+                        {{ invitacion.fecha_expiracion|date:"d/m/Y H:i" }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="actions-btns">
+                        {% if invitacion.estado == 'pendiente' %}
+                        <form method="post" action="{% url 'admin_reenviar_invitacion' invitacion.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-sm btn-reenviar"> Reenviar</button>
+                        </form>
+                        
+                        <form method="post" action="{% url 'admin_cancelar_invitacion' invitacion.id %}" 
+                              onsubmit="return confirm('¿Cancelar invitación a {{ invitacion.email }}?');" 
+                              style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-sm btn-cancelar"> Cancelar</button>
+                        </form>
+                        {% else %}
+                        <span style="color: #95a5a6;">-</span>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginación -->
+{% if invitaciones.has_other_pages %}
+<div style="text-align: center; margin-top: 2rem;">
+    {% if invitaciones.has_previous %}
+    <a href="?page={{ invitaciones.previous_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}"> Anterior</a>
+    {% endif %}
+    <span style="margin: 0 1rem;">Página {{ invitaciones.number }} de {{ invitaciones.paginator.num_pages }}</span>
+    {% if invitaciones.has_next %}
+    <a href="?page={{ invitaciones.next_page_number }}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">Siguiente </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div style="text-align: center; padding: 3rem; background: white; border-radius: 12px;">
+    <div style="font-size: 4rem; opacity: 0.5;"></div>
+    <h3>No hay invitaciones</h3>
+    <p style="color: #7f8c8d;">Envía invitaciones para agregar nuevos usuarios</p>
+</div>
+{% endif %}
+{% endblock %}

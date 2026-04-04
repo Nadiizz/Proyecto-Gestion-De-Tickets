@@ -1,0 +1,85 @@
+{% extends 'tickets/base_intranet.html' %}
+{% load static %}
+
+{% block title %}Editar Subcategoría - Panel de Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tickets/css/admin_categorias.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="breadcrumb">
+    <a href="{% url 'admin_panel' %}">📊 Panel Admin</a> /
+    <a href="{% url 'admin_subcategorias' %}">📌 Subcategorías</a> /
+    <span>✏️ Editar</span>
+</div>
+
+<div class="form-container">
+    <div class="form-header">
+        <h1>✏️ Editar Subcategoría</h1>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="categoria">
+                Categoría <span class="required">*</span>
+            </label>
+            <select id="categoria" name="categoria" required>
+                {% for categoria in categorias %}
+                    <option value="{{ categoria.id }}" {% if subcategoria.categoria.id == categoria.id %}selected{% endif %}>
+                        {{ categoria.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+            <div class="help-text">Cambia la categoría si es necesario</div>
+        </div>
+
+        <div class="form-group">
+            <label for="nombre">
+                Nombre <span class="required">*</span>
+            </label>
+            <input type="text" 
+                   id="nombre" 
+                   name="nombre" 
+                   value="{{ subcategoria.nombre }}"
+                   placeholder="Ej: Nómina, Impresoras, Vacaciones"
+                   required>
+            <div class="help-text">El nombre debe ser descriptivo y específico</div>
+        </div>
+
+        <div class="form-group">
+            <label for="descripcion">
+                Descripción
+            </label>
+            <textarea id="descripcion" 
+                      name="descripcion"
+                      placeholder="Describe brevemente el propósito de esta subcategoría...">{{ subcategoria.descripcion }}</textarea>
+            <div class="help-text">Opcional: proporciona contexto sobre esta subcategoría</div>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" 
+                       id="activa" 
+                       name="activa"
+                       {% if subcategoria.activa %}checked{% endif %}>
+                <span>Subcategoría Activa</span>
+            </label>
+            <div class="help-text">Las subcategorías inactivas no aparecerán en los formularios de creación de tickets</div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                ✅ Guardar Cambios
+            </button>
+            <a href="{% url 'admin_subcategorias' %}" class="btn btn-secondary">
+                ↩️ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
