@@ -403,6 +403,6 @@ python manage.py poblar_faqs
 
 ---
 
-**© 2024 Sistema de Gestión de Tickets - Coyahue**
+**© 2024 Sistema de Gestión de Tickets 
 
 **Última actualización**: Diciembre 2025
